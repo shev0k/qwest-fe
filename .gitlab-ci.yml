@@ -1,0 +1,35 @@
+image: node:18
+
+stages:
+  - install
+  - lint
+  - build
+  - test
+
+cache:
+  paths:
+    - node_modules/
+
+install_dependencies:
+  stage: install
+  script:
+    - npm ci
+
+lint_frontend:
+  stage: lint
+  script:
+    - npm run lint
+
+build_frontend:
+  stage: build
+  script:
+    - npm run build
+  artifacts:
+    paths:
+      - .next/
+    expire_in: 1 week
+
+test_frontend:
+  stage: test
+  script:
+    - npm run test
