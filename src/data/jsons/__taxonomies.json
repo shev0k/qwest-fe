@@ -1,0 +1,163 @@
+[
+  {
+    "id": 1,
+    "name": "Beach Destinations",
+    "href": "/",
+    "thumbnail": "https://images.pexels.com/photos/753626/pexels-photo-753626.jpeg?auto=compress&cs=tinysrgb&dpr=1&w=500",
+    "count": 18,
+    "color": "blue"
+  },
+  {
+    "id": 2,
+    "name": "Mountain Hiking",
+    "href": "/",
+    "thumbnail": "https://images.pexels.com/photos/462024/pexels-photo-462024.jpeg?auto=compress&cs=tinysrgb&dpr=1&w=500",
+    "count": 12,
+    "color": "green"
+  },
+  {
+    "id": 3,
+    "name": "Cultural Tours",
+    "href": "/",
+    "thumbnail": "https://images.pexels.com/photos/207852/pexels-photo-207852.jpeg?auto=compress&cs=tinysrgb&dpr=1&w=500",
+    "count": 21,
+    "color": "yellow"
+  },
+  {
+    "id": 4,
+    "name": "Urban Exploration",
+    "href": "/",
+    "thumbnail": "https://images.pexels.com/photos/374710/pexels-photo-374710.jpeg?auto=compress&cs=tinysrgb&dpr=1&w=500",
+    "count": 9,
+    "color": "indigo"
+  },
+  {
+    "id": 5,
+    "name": "Adventure Sports",
+    "href": "/",
+    "thumbnail": "https://images.pexels.com/photos/787961/pexels-photo-787961.jpeg?auto=compress&cs=tinysrgb&dpr=1&w=500",
+    "count": 15,
+    "color": "red"
+  },
+  {
+    "id": 6,
+    "name": "Wildlife Safaris",
+    "href": "/",
+    "thumbnail": "https://images.pexels.com/photos/158471/ibiza-town-historic-center-building-158471.jpeg?auto=compress&cs=tinysrgb&dpr=1&w=500",
+    "count": 11,
+    "color": "orange"
+  },
+  {
+    "id": 7,
+    "name": "Eco Tourism",
+    "href": "/",
+    "thumbnail": "https://images.pexels.com/photos/235615/pexels-photo-235615.jpeg?auto=compress&cs=tinysrgb&dpr=1&w=500",
+    "count": 8,
+    "color": "green"
+  },
+  {
+    "id": 8,
+    "name": "Food and Wine",
+    "href": "/",
+    "thumbnail": "https://images.pexels.com/photos/958545/pexels-photo-958545.jpeg?auto=compress&cs=tinysrgb&dpr=1&w=500",
+    "count": 19,
+    "color": "purple"
+  },
+  {
+    "id": 9,
+    "name": "Historical Sites",
+    "href": "/",
+    "thumbnail": "https://images.pexels.com/photos/36717/amazing-ancient-architecture-art.jpg?auto=compress&cs=tinysrgb&dpr=1&w=500",
+    "count": 14,
+    "color": "gray"
+  },
+  {
+    "id": 10,
+    "name": "Luxury Travel",
+    "href": "/",
+    "thumbnail": "https://images.pexels.com/photos/261102/pexels-photo-261102.jpeg?auto=compress&cs=tinysrgb&dpr=1&w=500",
+    "count": 7,
+    "color": "gold"
+  },
+  {
+    "id": 11,
+    "name": "Solo Travel",
+    "href": "/",
+    "thumbnail": "https://images.pexels.com/photos/346768/pexels-photo-346768.jpeg?auto=compress&cs=tinysrgb&dpr=1&w=500",
+    "count": 10,
+    "color": "pink"
+  },
+  {
+    "id": 12,
+    "name": "Family Vacations",
+    "href": "/",
+    "thumbnail": "https://images.pexels.com/photos/266004/pexels-photo-266004.jpeg?auto=compress&cs=tinysrgb&dpr=1&w=500",
+    "count":     22,
+    "color": "indigo"
+  },
+  {
+    "id": 13,
+    "name": "Winter Sports",
+    "href": "/",
+    "thumbnail": "https://images.pexels.com/photos/298007/pexels-photo-298007.jpeg?auto=compress&cs=tinysrgb&dpr=1&w=500",
+    "count": 9,
+    "color": "blue"
+  },
+  {
+    "id": 14,
+    "name": "Island Getaways",
+    "href": "/",
+    "thumbnail": "https://images.pexels.com/photos/753626/pexels-photo-753626.jpeg?auto=compress&cs=tinysrgb&dpr=1&w=500",
+    "count": 14,
+    "color": "teal"
+  },
+  {
+    "id": 15,
+    "name": "Camping Trips",
+    "href": "/",
+    "thumbnail": "https://images.pexels.com/photos/1439395/pexels-photo-1439395.jpeg?auto=compress&cs=tinysrgb&dpr=1&w=500",
+    "count": 18,
+    "color": "green"
+  },
+  {
+    "id": 16,
+    "name": "Road Trips",
+    "href": "/",
+    "thumbnail": "https://images.pexels.com/photos/1252500/pexels-photo-1252500.jpeg?auto=compress&cs=tinysrgb&dpr=1&w=500",
+    "count": 16,
+    "color": "red"
+  },
+  {
+    "id": 17,
+    "name": "Cruises",
+    "href": "/",
+    "thumbnail": "https://images.pexels.com/photos/2010875/pexels-photo-2010875.jpeg?auto=compress&cs=tinysrgb&dpr=1&w=500",
+    "count": 7,
+    "color": "purple"
+  },
+  {
+    "id": 18,
+    "name": "Wellness Retreats",
+    "href": "/",
+    "thumbnail": "https://images.pexels.com/photos/1029604/pexels-photo-1029604.jpeg?auto=compress&cs=tinysrgb&dpr=1&w=500",
+    "count": 12,
+    "color": "pink"
+  },
+  {
+    "id": 19,
+    "name": "Scuba Diving",
+    "href": "/",
+    "thumbnail": "https://images.pexels.com/photos/161956/pexels-photo-161956.jpeg?auto=compress&cs=tinysrgb&dpr=1&w=500",
+    "count": 10,
+    "color": "cyan"
+  },
+  {
+    "id": 20,
+    "name": "Cultural Festivals",
+    "href": "/",
+    "thumbnail": "https://images.pexels.com/photos/167699/pexels-photo-167699.jpeg?auto=compress&cs=tinysrgb&dpr=1&w=500",
+    "count": 13,
+    "color": "orange"
+  }
+]
+
