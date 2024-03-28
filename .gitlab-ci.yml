@@ -20,6 +20,7 @@ lint_frontend:
   stage: lint
   needs: ["install_dependencies"]
   script:
+    - npm install next
     - npm run lint
 
 build_frontend:
