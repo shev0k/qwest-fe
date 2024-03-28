@@ -27,6 +27,7 @@ build_frontend:
   stage: build
   needs: ["install_dependencies"]
   script:
+    - ls node_modules/.bin
     - npm run build
   artifacts:
     paths:
