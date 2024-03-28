@@ -7,6 +7,7 @@ stages:
   - test
 
 cache:
+  key: ${CI_COMMIT_REF_SLUG}
   paths:
     - node_modules/
 
@@ -17,11 +18,13 @@ install_dependencies:
 
 lint_frontend:
   stage: lint
+  needs: ["install_dependencies"]
   script:
     - npm run lint
 
 build_frontend:
   stage: build
+  needs: ["install_dependencies"]
   script:
     - npm run build
   artifacts:
@@ -31,5 +34,6 @@ build_frontend:
 
 test_frontend:
   stage: test
+  needs: ["install_dependencies"]
   script:
     - npm run test
