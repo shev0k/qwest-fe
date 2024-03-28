@@ -1,32 +1,18 @@
 image: node:18
 
 stages:
-  - install
   - lint
   - build
   - test
 
-cache:
-  key: ${CI_COMMIT_REF_SLUG}
-  paths:
-    - .npm/
-    - node_modules/
-  policy: pull-push
-
 before_script:
   - npm config set cache .npm --global
-
-install_dependencies:
-  stage: install
-  script:
-    - npm ci --prefer-offline
+  - npm ci --prefer-offline
 
 lint_frontend:
   stage: lint
   script:
     - npm run lint
-  needs:
-    - install_dependencies
 
 build_frontend:
   stage: build
@@ -36,12 +22,8 @@ build_frontend:
     paths:
       - .next/
     expire_in: 1 week
-  needs:
-    - install_dependencies
 
 test_frontend:
   stage: test
   script:
     - npm run test
-  needs:
-    - install_dependencies
