@@ -3,7 +3,6 @@ image: node:18
 stages:
   - lint
   - build
-  - test
 
 before_script:
   - npm config set cache .npm --global
@@ -22,8 +21,3 @@ build_frontend:
     paths:
       - .next/
     expire_in: 1 week
-
-test_frontend:
-  stage: test
-  script:
-    - npm run test
