@@ -10,32 +10,38 @@ cache:
   key: ${CI_COMMIT_REF_SLUG}
   paths:
     - node_modules/
+  policy: pull-push
 
 install_dependencies:
   stage: install
   script:
     - npm ci
+  artifacts:
+    paths:
+      - node_modules/
+    expire_in: 1 hour
 
 lint_frontend:
   stage: lint
-  needs: ["install_dependencies"]
   script:
-    - npm install next
     - npm run lint
+  needs:
+    - install_dependencies
 
 build_frontend:
   stage: build
-  needs: ["install_dependencies"]
   script:
-    - ls node_modules/.bin
     - npm run build
   artifacts:
     paths:
       - .next/
     expire_in: 1 week
+  needs:
+    - install_dependencies
 
 test_frontend:
   stage: test
-  needs: ["install_dependencies"]
   script:
     - npm run test
+  needs:
+    - install_dependencies
