@@ -9,17 +9,16 @@ stages:
 cache:
   key: ${CI_COMMIT_REF_SLUG}
   paths:
-    - node_modules/
+    - .npm/ # Cache the npm cache directory instead of node_modules
   policy: pull-push
+
+before_script:
+  - npm config set cache .npm --global # Use a local directory for npm cache
 
 install_dependencies:
   stage: install
   script:
-    - npm ci
-  artifacts:
-    paths:
-      - node_modules/
-    expire_in: 1 hour
+    - npm ci --prefer-offline # Use the cached packages if available
 
 lint_frontend:
   stage: lint
