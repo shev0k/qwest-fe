@@ -7,6 +7,7 @@ QWEST is a dynamic web application tailored for travelers seeking a personalized
 ## Links
 
 [QWEST Backend Repository on Fontys GIT](https://git.fhict.nl/I499309/qwest-be)
+
 [QWEST Frontend Repository on Fontys GIT](https://git.fhict.nl/I499309/qwest-fe)
 
 
