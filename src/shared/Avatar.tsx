@@ -1,18 +1,17 @@
-import { avatarColors } from "@/contains/contants";
 import React, { FC } from "react";
-import avatar1 from "@/images/avatars/Image-1.png";
 import Image, { StaticImageData } from "next/image";
+import avatar1 from "@/images/avatars/Image-1.png"; // Default avatar image
 
 export interface AvatarProps {
   containerClassName?: string;
   sizeClass?: string;
   radius?: string;
   imgUrl?: string | StaticImageData;
-  userName?: string;
+  email?: string;
   hasChecked?: boolean;
   hasCheckedClass?: string;
-  width?: number; // New prop for image width
-  height?: number; // New prop for image height
+  width?: number;
+  height?: number;
 }
 
 const Avatar: FC<AvatarProps> = ({
@@ -20,41 +19,39 @@ const Avatar: FC<AvatarProps> = ({
   sizeClass = "h-6 w-6 text-sm",
   radius = "rounded-full",
   imgUrl = avatar1,
-  userName,
+  email,
   hasChecked,
   hasCheckedClass = "w-4 h-4 -top-0.5 -right-0.5",
-  width = 100, // Default width if not provided
-  height = 100, // Default height if not provided
+  width = 100,
+  height = 100,
 }) => {
-  const url = imgUrl || "";
-  const name = userName || "John Doe";
-  const _setBgColor = (name: string) => {
-    const backgroundIndex = Math.floor(
-      name.charCodeAt(0) % avatarColors.length
-    );
-    return avatarColors[backgroundIndex];
-  };
+  const url = typeof imgUrl === 'string' ? imgUrl : avatar1; // Ensure the fallback for non-string inputs
+  const emailInitial = email ? email[0].toUpperCase() : 'U'; // Use the first letter of the email or 'U' as a fallback
 
   return (
     <div
       className={`wil-avatar relative flex-shrink-0 inline-flex items-center justify-center text-neutral-100 uppercase font-semibold shadow-inner ${radius} ${sizeClass} ${containerClassName}`}
-      style={{ backgroundColor: url ? undefined : _setBgColor(name) }}
+      style={{ backgroundColor: url ? undefined : 'lightgray' }} // Use light gray if no URL
     >
-      {url && (
+      {url ? (
         <Image
           className={`absolute inset-0 w-full h-full object-cover ${radius}`}
           src={url}
-          alt={name}
+          alt={`Avatar of ${email || 'User'}`}
           width={width}
           height={height}
           layout="fixed"
         />
+      ) : (
+        // Display the first letter of the email if no image URL is provided
+        <span className={`wil-avatar__name ${radius} ${sizeClass} flex items-center justify-center`}>
+          {emailInitial}
+        </span>
       )}
-      <span className="wil-avatar__name">{name[0]}</span>
 
       {hasChecked && (
         <span
-          className={` bg-primary-custom-2 rounded-full text-white text-xs flex items-center justify-center absolute  ${hasCheckedClass}`}
+          className={`bg-primary-custom-2 rounded-full text-white text-xs flex items-center justify-center absolute ${hasCheckedClass}`}
         >
           <i className="las la-check"></i>
         </span>

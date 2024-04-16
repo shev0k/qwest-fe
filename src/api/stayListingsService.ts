@@ -1,13 +1,21 @@
-// functions/fetchStayListings.ts
-import { StayDataType } from "@/data/types"; // Ensure this path matches your project structure
+import axios from 'axios';
+import { StayDataType } from "@/data/types";
 
 const fetchStayListings = async (): Promise<StayDataType[]> => {
-  const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/stay-listings`);
-  if (!response.ok) {
+  try {
+    const response = await axios.get<StayDataType[]>(`${process.env.NEXT_PUBLIC_BACKEND_URL}/stay-listings`);
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      console.error("Failed to fetch stay listings:", error.message);
+      if (error.response) {
+        console.error('Failed with status:', error.response.status);
+      }
+    } else {
+      console.error("An unexpected error occurred:", error);
+    }
     throw new Error('Failed to fetch stay listings');
   }
-  const data: StayDataType[] = await response.json();
-  return data;
 };
 
 export default fetchStayListings;

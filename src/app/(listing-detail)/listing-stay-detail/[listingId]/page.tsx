@@ -34,7 +34,7 @@ const ListingStayDetailPage = () => {
     
       const addressQuery = encodeURIComponent(`${listing.street}, ${listing.postalCode}, ${listing.city}, ${listing.country}`);
     
-      return `https://www.google.com/maps/embed/v1/place?key=AIzaSyDZlA0umGPLINzvGoRTkrJGce8SQCsIyBk&q=${addressQuery}`;
+      return `https://www.google.com/maps/embed/v1/place?key=AIzaSyAyXWlzjN4b3X9kQllFwTeJwFVa1Eqhb-8&q=${addressQuery}`;
     }, [listing]);
     
   
