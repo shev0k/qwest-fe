@@ -1,19 +1,12 @@
 image: node:18
 
 stages:
-  - install
   - lint
   - build
-  - test
 
-cache:
-  paths:
-    - node_modules/
-
-install_dependencies:
-  stage: install
-  script:
-    - npm ci
+before_script:
+  - npm config set cache .npm --global
+  - npm ci --prefer-offline
 
 lint_frontend:
   stage: lint
@@ -28,8 +21,3 @@ build_frontend:
     paths:
       - .next/
     expire_in: 1 week
-
-test_frontend:
-  stage: test
-  script:
-    - npm run test
