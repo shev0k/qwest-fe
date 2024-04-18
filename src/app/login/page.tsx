@@ -1,15 +1,51 @@
-import React, { FC } from "react";
-import facebookSvg from "@/images/Facebook.svg";
-import twitterSvg from "@/images/Twitter.svg";
-import googleSvg from "@/images/Google.svg";
+'use client'
+import React, { useState, FC } from "react";
 import Input from "@/shared/Input";
 import ButtonPrimary from "@/shared/ButtonPrimary";
-import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from 'next/navigation';
+import { login } from "@/api/authService";
+import { useAuth } from '@/contexts/authContext';
+import axios, { AxiosError } from 'axios';
+
 
 export interface PageLoginProps {}
 
-const PageLogin: FC<PageLoginProps> = ({}) => {
+const PageLogin: FC<PageLoginProps> = () => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const { loginUser } = useAuth();
+  const router = useRouter();
+
+  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    try {
+      const response = await login({ email, password });
+      if (response.jwt) { // Ensure there is a token in the response
+        loginUser({
+          displayName: response.displayName || email.split('@')[0],
+          avatar: response.avatar || "",
+          location: response.location || "Unknown",
+          email: response.email,
+          token: response.jwt // Pass the JWT token to loginUser
+        });
+        router.push('/'); // Redirect after successful login
+      } else {
+        setError("Failed to retrieve authentication token.");
+      }
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const message = error.response?.data.message || "An unexpected error occurred during login.";
+        setError(message);
+      } else if (error instanceof Error) {
+        setError(error.message);
+      } else {
+        setError("An unexpected error occurred during login.");
+      }
+    }
+  };
+  
   return (
     <div className={`nc-PageLogin`}>
       <div className="container mb-24 lg:mb-32">
@@ -25,7 +61,7 @@ const PageLogin: FC<PageLoginProps> = ({}) => {
             <div className="absolute left-0 w-full top-1/2 transform -translate-y-1/2 border border-neutral-100 dark:border-neutral-800"></div>
           </div>
           {/* FORM */}
-          <form className="grid grid-cols-1 gap-6" action="#" method="post">
+          <form className="grid grid-cols-1 gap-6" onSubmit={handleLogin}>
             <label className="block">
               <span className="text-neutral-800 dark:text-neutral-200">
                 Email Address
@@ -34,6 +70,8 @@ const PageLogin: FC<PageLoginProps> = ({}) => {
                 type="email"
                 placeholder="johndoe@example.com"
                 className="mt-1"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
               />
             </label>
             <label className="block">
@@ -43,11 +81,17 @@ const PageLogin: FC<PageLoginProps> = ({}) => {
                   Forgot Password?
                 </Link>
               </span>
-              <Input type="password" placeholder="********" className="mt-1" />
+              <Input
+                type="password"
+                placeholder="********"
+                className="mt-1"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
             </label>
             <ButtonPrimary type="submit">Continue</ButtonPrimary>
           </form>
-
+          {error && <div className="text-red-500 text-center mt-4">{error}</div>}
           {/* ==== */}
           <span className="block text-center text-neutral-700 dark:text-neutral-300">
             New User? {` `}

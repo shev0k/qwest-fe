@@ -14,8 +14,8 @@ const PageSignUp: FC<PageSignUpProps> = () => {
     email: "",
     password: "",
     confirmPassword: "",
-    displayName: "", // Added displayName to the form state
-    location: "" // Added location to the form state
+    displayName: "",
+    location: ""
   });
   const [error, setError] = useState("");
   const { loginUser } = useAuth();
@@ -42,13 +42,20 @@ const PageSignUp: FC<PageSignUpProps> = () => {
         password: formData.password,
       });
       console.log('User created:', response);
-      loginUser({
-        displayName: formData.displayName,
-        avatar: "", // Placeholder for avatar, could be set based on user interaction or default
-        location: formData.location,
-        email: formData.email
-      });
-      router.push('/'); // Redirect to the home page after successful login
+      if (response.jwt) {
+        loginUser({
+          displayName: formData.displayName || response.displayName || 'No Name',
+          avatar: response.avatar || "",
+          location: response.location || "Unknown",
+          email: response.email,
+          token: response.jwt  // Assuming the JWT is attached to the response
+        });
+        // Optionally, store the JWT in local storage or appropriate place
+        localStorage.setItem('jwt', response.jwt);
+        router.push('/');
+      } else {
+        setError("Failed to login after signup.");
+      }
     } catch (error) {
       if (error instanceof Error) {
         setError(error.message);

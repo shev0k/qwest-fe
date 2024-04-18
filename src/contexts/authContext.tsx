@@ -5,12 +5,13 @@ interface UserType {
   avatar: string;
   location: string;
   email: string;
+  token: string;  // Added token to user type
 }
 
 interface AuthContextType {
   isAuthenticated: boolean;
   user: UserType | null;
-  loginUser: (userData: UserType) => void;
+  loginUser: (userData: UserType & { token: string }) => void; // Adjusted to include token
   logoutUser: () => void;
 }
 
@@ -22,36 +23,27 @@ export const AuthProvider: React.FC<{children: ReactNode}> = ({ children }) => {
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const storedAuthState = localStorage.getItem('isAuthenticated');
       const storedUserData = localStorage.getItem('user');
-      try {
-        const userData = storedUserData ? JSON.parse(storedUserData) : null;
-        if (storedAuthState === 'true' && userData) {
-          setIsAuthenticated(true);
-          setUser(userData);
-          console.log('User logged in on init with user data:', userData);
-        }
-      } catch (error) {
-        console.error('Error parsing user data on init:', error);
-        localStorage.removeItem('user');
-        localStorage.removeItem('isAuthenticated');
+      if (storedUserData) {
+        const userData: UserType = JSON.parse(storedUserData);
+        setIsAuthenticated(true);
+        setUser(userData);
+        console.log('User logged in on init with user data:', userData);
       }
     }
   }, []);
 
-  const loginUser = (userData: UserType) => {
+  const loginUser = (userData: UserType & { token: string }) => {
     if (typeof window !== 'undefined') {
-      localStorage.setItem('isAuthenticated', 'true');
       localStorage.setItem('user', JSON.stringify(userData));
       setIsAuthenticated(true);
       setUser(userData);
-      console.log('User logged in:', userData);
+      console.log('User logged in with JWT:', userData.token);
     }
   };
 
   const logoutUser = () => {
     if (typeof window !== 'undefined') {
-      localStorage.removeItem('isAuthenticated');
       localStorage.removeItem('user');
       setIsAuthenticated(false);
       setUser(null);
