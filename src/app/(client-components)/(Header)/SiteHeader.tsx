@@ -11,6 +11,8 @@ import Header from "./Header";
 import Header3 from "./Header3";
 import { usePathname } from "next/navigation";
 import { useThemeMode } from "@/utils/useThemeMode";
+import { useAuth } from '@/contexts/authContext';
+
 
 export type SiteHeaders = "Logged out" | "Logged in" | "Logged in ALT";
 
@@ -30,6 +32,7 @@ const PAGES_HIDE_HEADER_BORDER: PathName[] = [
 ];
 
 const SiteHeader = () => {
+  const { isAuthenticated } = useAuth();
   const anchorRef = useRef<HTMLDivElement>(null);
 
   let [headers] = useState<SiteHeaders[]>(["Logged out", "Logged in", "Logged in ALT"]);
@@ -145,16 +148,10 @@ const SiteHeader = () => {
         ? ""
         : "shadow-sm dark:border-b dark:border-neutral-700";
     }
-    switch (headerSelected) {
-      case "Logged out":
-        return <Header className={headerClassName} navType="MainNav1" />;
-      case "Logged in":
-        return <Header className={headerClassName} navType="MainNav2" />;
-      case "Logged in ALT":
-        return <Header3 className={headerClassName} />;
-
-      default:
-        return <Header3 className={headerClassName} />;
+    if (isAuthenticated) {
+      return <Header className={headerClassName} navType="MainNav2" />;
+    } else {
+      return <Header className={headerClassName} navType="MainNav1" />;
     }
   };
 

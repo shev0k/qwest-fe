@@ -25,7 +25,7 @@ export interface AuthorType {
   id: number;
   firstName: string;
   lastName: string;
-  displayName: string;
+  username: string;
   avatar: string | StaticImageData;
   bgImage?: string | StaticImageData;
   email?: string;

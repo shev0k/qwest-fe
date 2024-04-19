@@ -1,23 +1,80 @@
-import React, { FC } from "react";
+"use client";
+import React, { useState, useEffect } from "react";
+import { useAuth } from "@/contexts/authContext"; // Ensure this path is correct
 import Label from "@/components/Label";
 import Avatar from "@/shared/Avatar";
 import ButtonPrimary from "@/shared/ButtonPrimary";
 import Input from "@/shared/Input";
-import Select from "@/shared/Select";
 import Textarea from "@/shared/Textarea";
 
-export interface AccountPageProps {}
-
 const AccountPage = () => {
+  const { user, updateUserDetails } = useAuth();
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    username: '',
+    email: '',
+    country: '',
+    phoneNumber: '',
+    description: '',
+  });
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    // Ensuring the form data is re-initialized correctly on user updates
+    if (user) {
+      setFormData({
+        firstName: user.firstName || '',
+        lastName: user.lastName || '',
+        username: user.username || '',
+        email: user.email || '',
+        country: user.country || '',
+        phoneNumber: user.phoneNumber || '',
+        description: user.description || '',
+      });
+    }
+  }, [user]);
+  
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setError("");
+  
+    if (!user || !user.token) {
+      setError('User data is incomplete. Unable to update profile.');
+      return;
+    }
+  
+    const updatedUserData = { ...user, ...formData };
+    console.log("Updated user data being sent:", updatedUserData);
+  
+    try {
+      await updateUserDetails(updatedUserData);
+      console.log("Update successful");
+      alert('Profile updated successfully.');
+    } catch (error) {
+      console.error("Update error:", error);
+      setError("Failed to update profile. Please try again.");
+    }
+  };
+  
+  
+
+
   return (
     <div className="space-y-6 sm:space-y-8">
       {/* HEADING */}
       <h2 className="text-3xl font-semibold">Account Infomation</h2>
       <div className="w-14 border-b border-neutral-200 dark:border-neutral-700"></div>
-      <div className="flex flex-col md:flex-row">
+      <form className="flex flex-col md:flex-row" onSubmit={handleSubmit}>
         <div className="flex-shrink-0 flex items-start">
           <div className="relative rounded-full overflow-hidden flex">
-            <Avatar sizeClass="w-32 h-32" />
+            <Avatar sizeClass="w-32 h-32" imgUrl={user?.avatar} />
             <div className="absolute inset-0 bg-black bg-opacity-60 flex flex-col items-center justify-center text-neutral-50 cursor-pointer">
               <svg
                 width="30"
@@ -45,52 +102,44 @@ const AccountPage = () => {
         </div>
         <div className="flex-grow mt-10 md:mt-0 md:pl-16 max-w-3xl space-y-6">
           <div>
-            <Label>Name</Label>
-            <Input className="mt-1.5" defaultValue="Claudiu Gabriel" />
+            <Label htmlFor="firstName">First Name</Label>
+            <Input id="firstName" name="firstName" className="mt-1.5" value={formData.firstName} onChange={handleChange} />
+          </div>
+          <div>
+          <Label htmlFor="lastName">Last Name</Label>
+          <Input id="lastName" name="lastName" className="mt-1.5" value={formData.lastName} onChange={handleChange} />
           </div>
           {/* ---- */}
           <div>
-            <Label>Gender</Label>
-            <Select className="mt-1.5">
-              <option value="Male">Male</option>
-              <option value="Female">Female</option>
-            </Select>
+          <Label htmlFor="username">Username</Label>
+          <Input id="username" name="username" className="mt-1.5" value={formData.username} onChange={handleChange} />
           </div>
           {/* ---- */}
           <div>
-            <Label>Username</Label>
-            <Input className="mt-1.5" defaultValue="@shevoK" />
+          <Label htmlFor="email">Email</Label>
+          <Input id="email" name="email" type="email" className="mt-1.5" value={formData.email} onChange={handleChange} />
           </div>
           {/* ---- */}
           <div>
-            <Label>Email</Label>
-            <Input className="mt-1.5" defaultValue="cbadea32@gmail.com" />
-          </div>
-          {/* ---- */}
-          <div className="max-w-lg">
-            <Label>Date of birth</Label>
-            <Input className="mt-1.5" type="date" defaultValue="2003-02-10" />
+          <Label htmlFor="country">Country</Label>
+          <Input id="country" name="country" className="mt-1.5" value={formData.country} onChange={handleChange} />
           </div>
           {/* ---- */}
           <div>
-            <Label>Addess</Label>
-            <Input className="mt-1.5" defaultValue="Netherlands" />
+          <Label htmlFor="phoneNumber">Phone number</Label>
+          <Input id="phoneNumber" name="phoneNumber" className="mt-1.5" value={formData.phoneNumber} onChange={handleChange} />
           </div>
           {/* ---- */}
           <div>
-            <Label>Phone number</Label>
-            <Input className="mt-1.5" defaultValue="+31649825593" />
-          </div>
-          {/* ---- */}
-          <div>
-            <Label>About you</Label>
-            <Textarea className="mt-1.5" defaultValue="Offering comfortable lodging to ensure you have a cozy place to stay, far from the discomforts of the outdoors." />
+          <Label htmlFor="description">About you</Label>
+          <Textarea id="description" name="description" className="mt-1.5" value={formData.description} onChange={handleChange} />
           </div>
           <div className="pt-2">
+            {error && <div className="text-red-500 mt-4">{error}</div>}
             <ButtonPrimary>Save Changes</ButtonPrimary>
           </div>
         </div>
-      </div>
+      </form>
     </div>
   );
 };

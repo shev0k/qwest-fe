@@ -3,11 +3,25 @@ import { Fragment } from "react";
 import Avatar from "@/shared/Avatar";
 import SwitchDarkMode2 from "@/shared/SwitchDarkMode2";
 import Link from "next/link";
+import { useAuth } from '@/contexts/authContext';
+import { useRouter } from 'next/navigation';
+
 interface Props {
   className?: string;
 }
 
 export default function AvatarDropdown({ className = "" }: Props) {
+  const { isAuthenticated, logoutUser, user } = useAuth();
+  const router = useRouter();
+
+  const handleLogout = () => {
+    logoutUser();
+    router.push('/login');
+  };
+
+  const displayName = user?.username || user?.email.split('@')[0];
+
+
   return (
     <>
       <Popover className={`AvatarDropdown relative flex ${className}`}>
@@ -16,7 +30,11 @@ export default function AvatarDropdown({ className = "" }: Props) {
             <Popover.Button
               className={`self-center w-10 h-10 sm:w-12 sm:h-12 rounded-full text-slate-700 dark:text-slate-300 focus:outline-none flex items-center justify-center hover:bg-[rgb(202,138,4)] dark:hover:bg-[rgb(202,138,4)]`}
             >
-              <Avatar sizeClass="w-8 h-8 sm:w-9 sm:h-9" />
+            <Avatar
+              imgUrl={user?.avatar}
+              email={user?.email}
+              sizeClass="w-8 h-8 sm:w-9 sm:h-9"
+            />
             </Popover.Button>
             <Transition
               as={Fragment}
@@ -31,11 +49,14 @@ export default function AvatarDropdown({ className = "" }: Props) {
                 <div className="overflow-hidden rounded-3xl shadow-lg ring-1 ring-black ring-opacity-5">
                   <div className="relative grid grid-cols-1 gap-6 bg-white dark:bg-neutral-800 py-7 px-6">
                     <div className="flex items-center space-x-3">
-                      <Avatar sizeClass="w-12 h-12" />
-
+                    <Avatar
+                        imgUrl={user?.avatar}
+                        email={user?.email}
+                        sizeClass="w-12 h-12"
+                      />
                       <div className="flex-grow">
-                        <h4 className="font-semibold">Claudiu Gabriel</h4>
-                        <p className="text-xs mt-0.5">Netherlands</p>
+                      <h4 className="font-semibold">{displayName || "Username"}</h4>
+                      <p className="text-xs mt-0.5">{user?.country || "No Location Set"}</p>
                       </div>
                     </div>
 
@@ -265,7 +286,7 @@ export default function AvatarDropdown({ className = "" }: Props) {
                     <Link
                       href={"/"}
                       className="flex items-center p-2 -m-3 transition duration-150 ease-in-out rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-700 focus:outline-none focus-visible:ring focus-visible:ring-orange-500 focus-visible:ring-opacity-50"
-                      onClick={() => close()}
+                      onClick={handleLogout}
                     >
                       <div className="flex items-center justify-center flex-shrink-0 text-neutral-500 dark:text-neutral-300">
                         <svg

@@ -20,7 +20,7 @@ const DEMO_STAY_LISTINGS = __stayListing.map((post, index): StayDataType => {
   return {
     id: index, // Assuming you want the ID to be numeric
     authorId: post.authorId,
-    authorDisplayName: author ? author.displayName : "Unknown Author", // Replace 'name' with the appropriate field from DEMO_AUTHORS
+    authorDisplayName: author ? author.username : "Unknown Author", // Replace 'name' with the appropriate field from DEMO_AUTHORS
     date: post.date,
     title: post.title,
     featuredImage: post.featuredImage,

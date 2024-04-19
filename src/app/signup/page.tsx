@@ -1,16 +1,57 @@
-import React, { FC } from "react";
-import facebookSvg from "@/images/Facebook.svg";
-import twitterSvg from "@/images/Twitter.svg";
-import googleSvg from "@/images/Google.svg";
+'use client'
+import React, { useState, FC } from "react";
+import { useRouter } from 'next/navigation';
+import Link from "next/link";
+import { signUp } from "@/api/authService";
+import { useAuth } from '@/contexts/authContext';
+
 import Input from "@/shared/Input";
 import ButtonPrimary from "@/shared/ButtonPrimary";
-import Image from "next/image";
-import Link from "next/link";
 
 export interface PageSignUpProps {}
 
+const PageSignUp: FC<PageSignUpProps> = () => {
+  const [formData, setFormData] = useState({
+    email: "",
+    password: "",
+    confirmPassword: "",
+    username: "",
+    country: "" 
+  });
+  const [error, setError] = useState<string | null>(null);
+  const { loginUser } = useAuth();
+  const router = useRouter();
 
-const PageSignUp: FC<PageSignUpProps> = ({}) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (formData.password !== formData.confirmPassword) {
+      setError("Passwords do not match");
+      return;
+    }
+    setError(null);  // Clear any previous errors
+
+    try {
+      const response = await signUp({
+        email: formData.email,
+        password: formData.password,
+      });
+      loginUser({
+        ...response,
+        username: response.username || formData.email.split('@')[0],
+        avatar: response.avatar || "",
+        country: response.country || "",
+        token: response.jwt
+      });
+      router.push('/');  // Redirect to home or dashboard
+    } catch (error) {
+      setError("An unexpected error occurred during sign up. Please try again.");
+    }
+  };
+  
   return (
     <div className={`nc-PageSignUp  `}>
       <div className="container mb-24 lg:mb-32">
@@ -26,32 +67,49 @@ const PageSignUp: FC<PageSignUpProps> = ({}) => {
             <div className="absolute left-0 w-full top-1/2 transform -translate-y-1/2 border border-neutral-100 dark:border-neutral-800"></div>
           </div>
           {/* FORM */}
-          <form className="grid grid-cols-1 gap-6" action="#" method="post">
+          <form className="grid grid-cols-1 gap-6" onSubmit={handleSubmit}>
             <label className="block">
               <span className="text-neutral-800 dark:text-neutral-200">
                 Email Address
               </span>
               <Input
+                name="email"
                 type="email"
                 placeholder="johndoe@example.com"
                 className="mt-1"
+                value={formData.email}
+                onChange={handleChange}
               />
             </label>
             <label className="block">
               <span className="flex justify-between items-center text-neutral-800 dark:text-neutral-200">
                 Password
               </span>
-              <Input type="password" placeholder="********" className="mt-1" />
+              <Input
+                name="password"
+                type="password"
+                placeholder="********"
+                className="mt-1"
+                value={formData.password}
+                onChange={handleChange}
+              />
             </label>
             <label className="block">
               <span className="flex justify-between items-center text-neutral-800 dark:text-neutral-200">
                 Confirm Password
               </span>
-              <Input type="password" placeholder="********" className="mt-1" />
+              <Input
+                name="confirmPassword"
+                type="password"
+                placeholder="********"
+                className="mt-1"
+                value={formData.confirmPassword}
+                onChange={handleChange}
+              />
             </label>
             <ButtonPrimary type="submit">Continue</ButtonPrimary>
           </form>
-
+          {error && <div className="text-red-500 text-center mt-4">{error}</div>}
           {/* ==== */}
           <span className="block text-center text-neutral-700 dark:text-neutral-300">
             Already Have an Account? {` `}

@@ -1,15 +1,47 @@
-import React, { FC } from "react";
-import facebookSvg from "@/images/Facebook.svg";
-import twitterSvg from "@/images/Twitter.svg";
-import googleSvg from "@/images/Google.svg";
+'use client'
+import React, { useState, FC } from "react";
+import { useRouter } from 'next/navigation';
+import Link from "next/link";
+import { login } from "@/api/authService";
+import { useAuth } from '@/contexts/authContext';
+
 import Input from "@/shared/Input";
 import ButtonPrimary from "@/shared/ButtonPrimary";
-import Image from "next/image";
-import Link from "next/link";
 
 export interface PageLoginProps {}
 
-const PageLogin: FC<PageLoginProps> = ({}) => {
+const PageLogin: FC<PageLoginProps> = () => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const { loginUser } = useAuth();
+  const router = useRouter();
+
+  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setError(null);
+    try {
+      const response = await login({ email, password });
+      if (response.jwt) {
+        loginUser({
+          ...response,
+          username: response.username || email.split('@')[0],
+          avatar: response.avatar || "",
+          country: response.country || "",
+          token: response.jwt
+        });
+        router.push('/');
+      } else {
+        setError("Authentication token not received.");
+      }
+    } catch (error) {
+      const errMsg = error instanceof Error ? error.message : "Login failed due to an unexpected issue.";
+      setError(errMsg);
+    }
+  };
+
+
+  
   return (
     <div className={`nc-PageLogin`}>
       <div className="container mb-24 lg:mb-32">
@@ -25,7 +57,7 @@ const PageLogin: FC<PageLoginProps> = ({}) => {
             <div className="absolute left-0 w-full top-1/2 transform -translate-y-1/2 border border-neutral-100 dark:border-neutral-800"></div>
           </div>
           {/* FORM */}
-          <form className="grid grid-cols-1 gap-6" action="#" method="post">
+          <form className="grid grid-cols-1 gap-6" onSubmit={handleLogin}>
             <label className="block">
               <span className="text-neutral-800 dark:text-neutral-200">
                 Email Address
@@ -34,6 +66,8 @@ const PageLogin: FC<PageLoginProps> = ({}) => {
                 type="email"
                 placeholder="johndoe@example.com"
                 className="mt-1"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
               />
             </label>
             <label className="block">
@@ -43,11 +77,17 @@ const PageLogin: FC<PageLoginProps> = ({}) => {
                   Forgot Password?
                 </Link>
               </span>
-              <Input type="password" placeholder="********" className="mt-1" />
+              <Input
+                type="password"
+                placeholder="********"
+                className="mt-1"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
             </label>
             <ButtonPrimary type="submit">Continue</ButtonPrimary>
           </form>
-
+          {error && <div className="text-red-500 text-center mt-4">{error}</div>}
           {/* ==== */}
           <span className="block text-center text-neutral-700 dark:text-neutral-300">
             New User? {` `}
