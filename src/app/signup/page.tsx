@@ -1,11 +1,12 @@
 'use client'
 import React, { useState, FC } from "react";
-import Input from "@/shared/Input";
-import ButtonPrimary from "@/shared/ButtonPrimary";
-import Link from "next/link";
 import { useRouter } from 'next/navigation';
+import Link from "next/link";
 import { signUp } from "@/api/authService";
 import { useAuth } from '@/contexts/authContext';
+
+import Input from "@/shared/Input";
+import ButtonPrimary from "@/shared/ButtonPrimary";
 
 export interface PageSignUpProps {}
 
@@ -14,10 +15,10 @@ const PageSignUp: FC<PageSignUpProps> = () => {
     email: "",
     password: "",
     confirmPassword: "",
-    displayName: "",
-    location: ""
+    username: "",
+    country: "" 
   });
-  const [error, setError] = useState("");
+  const [error, setError] = useState<string | null>(null);
   const { loginUser } = useAuth();
   const router = useRouter();
 
@@ -27,46 +28,30 @@ const PageSignUp: FC<PageSignUpProps> = () => {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!formData.email || !formData.password || !formData.confirmPassword) {
-      setError("Please fill in all fields");
-      return;
-    }
     if (formData.password !== formData.confirmPassword) {
       setError("Passwords do not match");
       return;
     }
-    setError("");
+    setError(null);  // Clear any previous errors
+
     try {
       const response = await signUp({
         email: formData.email,
         password: formData.password,
       });
-      console.log('User created:', response);
-      if (response.jwt) {
-        loginUser({
-          displayName: formData.displayName || response.displayName || 'No Name',
-          avatar: response.avatar || "",
-          location: response.location || "Unknown",
-          email: response.email,
-          token: response.jwt  // Assuming the JWT is attached to the response
-        });
-        // Optionally, store the JWT in local storage or appropriate place
-        localStorage.setItem('jwt', response.jwt);
-        router.push('/');
-      } else {
-        setError("Failed to login after signup.");
-      }
+      loginUser({
+        ...response,
+        username: response.username || formData.email.split('@')[0],
+        avatar: response.avatar || "",
+        country: response.country || "",
+        token: response.jwt
+      });
+      router.push('/');  // Redirect to home or dashboard
     } catch (error) {
-      if (error instanceof Error) {
-        setError(error.message);
-      } else {
-        setError("An unexpected error occurred during sign up.");
-      }
+      setError("An unexpected error occurred during sign up. Please try again.");
     }
   };
   
-
-
   return (
     <div className={`nc-PageSignUp  `}>
       <div className="container mb-24 lg:mb-32">

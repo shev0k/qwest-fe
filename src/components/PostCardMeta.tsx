@@ -35,11 +35,11 @@ const PostCardMeta: FC<PostCardMetaProps> = ({
               size === "normal" ? "h-7 w-7 text-sm" : "h-10 w-10 text-xl"
             }
             imgUrl={author.avatar}
-            userName={author.displayName}
+            username={author.username}
           />
         )}
         <span className="block text-neutral-6000 hover:text-black dark:text-neutral-300 dark:hover:text-white font-medium">
-          {author.displayName}
+          {author.username}
         </span>
       </Link>
       <>

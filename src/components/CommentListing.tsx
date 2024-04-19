@@ -38,7 +38,7 @@ const CommentListing: FC<CommentListingProps> = ({
         <Avatar
           sizeClass="h-10 w-10 text-lg"
           radius="rounded-full"
-          userName={data.name}
+          username={data.name}
           imgUrl={data.avatar}
         />
       </div>

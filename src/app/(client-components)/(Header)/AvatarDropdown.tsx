@@ -11,13 +11,16 @@ interface Props {
 }
 
 export default function AvatarDropdown({ className = "" }: Props) {
-  const { isAuthenticated, logoutUser, user } = useAuth(); // Assume `user` contains the user details
+  const { isAuthenticated, logoutUser, user } = useAuth();
   const router = useRouter();
 
   const handleLogout = () => {
-    logoutUser(); // Triggers logout from the auth context
-    router.push('/login'); // Redirects user to the login page
+    logoutUser();
+    router.push('/login');
   };
+
+  const displayName = user?.username || user?.email.split('@')[0];
+
 
   return (
     <>
@@ -28,8 +31,8 @@ export default function AvatarDropdown({ className = "" }: Props) {
               className={`self-center w-10 h-10 sm:w-12 sm:h-12 rounded-full text-slate-700 dark:text-slate-300 focus:outline-none flex items-center justify-center hover:bg-[rgb(202,138,4)] dark:hover:bg-[rgb(202,138,4)]`}
             >
             <Avatar
-              imgUrl={user?.avatar} // Display the user's avatar or first letter of the email
-              email={user?.email} // Pass email for fallback display
+              imgUrl={user?.avatar}
+              email={user?.email}
               sizeClass="w-8 h-8 sm:w-9 sm:h-9"
             />
             </Popover.Button>
@@ -52,8 +55,8 @@ export default function AvatarDropdown({ className = "" }: Props) {
                         sizeClass="w-12 h-12"
                       />
                       <div className="flex-grow">
-                      <h4 className="font-semibold">{user?.email || "Username"}</h4>
-                      <p className="text-xs mt-0.5">{user?.location || "No Location Set"}</p>
+                      <h4 className="font-semibold">{displayName || "Username"}</h4>
+                      <p className="text-xs mt-0.5">{user?.country || "No Location Set"}</p>
                       </div>
                     </div>
 

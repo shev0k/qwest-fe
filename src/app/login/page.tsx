@@ -1,50 +1,46 @@
 'use client'
 import React, { useState, FC } from "react";
-import Input from "@/shared/Input";
-import ButtonPrimary from "@/shared/ButtonPrimary";
-import Link from "next/link";
 import { useRouter } from 'next/navigation';
+import Link from "next/link";
 import { login } from "@/api/authService";
 import { useAuth } from '@/contexts/authContext';
-import axios, { AxiosError } from 'axios';
 
+import Input from "@/shared/Input";
+import ButtonPrimary from "@/shared/ButtonPrimary";
 
 export interface PageLoginProps {}
 
 const PageLogin: FC<PageLoginProps> = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [error, setError] = useState<string | null>(null);
   const { loginUser } = useAuth();
   const router = useRouter();
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setError(null);
     try {
       const response = await login({ email, password });
-      if (response.jwt) { // Ensure there is a token in the response
+      if (response.jwt) {
         loginUser({
-          displayName: response.displayName || email.split('@')[0],
+          ...response,
+          username: response.username || email.split('@')[0],
           avatar: response.avatar || "",
-          location: response.location || "Unknown",
-          email: response.email,
-          token: response.jwt // Pass the JWT token to loginUser
+          country: response.country || "",
+          token: response.jwt
         });
-        router.push('/'); // Redirect after successful login
+        router.push('/');
       } else {
-        setError("Failed to retrieve authentication token.");
+        setError("Authentication token not received.");
       }
     } catch (error) {
-      if (axios.isAxiosError(error)) {
-        const message = error.response?.data.message || "An unexpected error occurred during login.";
-        setError(message);
-      } else if (error instanceof Error) {
-        setError(error.message);
-      } else {
-        setError("An unexpected error occurred during login.");
-      }
+      const errMsg = error instanceof Error ? error.message : "Login failed due to an unexpected issue.";
+      setError(errMsg);
     }
   };
+
+
   
   return (
     <div className={`nc-PageLogin`}>

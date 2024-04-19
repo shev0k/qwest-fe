@@ -102,7 +102,7 @@ const ListingStayDetailPage = () => {
           <span className="ml-2.5 text-neutral-500 dark:text-neutral-400">
             Hosted by{" "}
             <span className="text-neutral-900 dark:text-neutral-200 font-medium">
-              {author?.displayName}
+              {author?.username}
             </span>
           </span>
         </div>
@@ -398,7 +398,7 @@ const ListingStayDetailPage = () => {
           />
           <div>
             <a className="block text-xl font-medium" href="##">
-              {author?.displayName}
+              {author?.username}
             </a>
             <div className="mt-1.5 flex items-center text-sm text-neutral-500 dark:text-neutral-400">
               <StartRating point={author?.starRating}/>
