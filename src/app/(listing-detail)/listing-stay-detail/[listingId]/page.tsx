@@ -1,8 +1,10 @@
-"use client";
-
-import React, { useEffect, Fragment, useState, useMemo } from "react";
+"use client"
+import React, { useEffect, useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
+import Image from "next/image";
+import { usePathname } from "next/navigation";
 import { Dialog, Transition } from "@headlessui/react";
-
+import { ArrowRightIcon, Squares2X2Icon } from "@heroicons/react/24/outline";
 import StartRating from "@/components/StartRating";
 import Avatar from "@/shared/Avatar";
 import Badge from "@/shared/Badge";
@@ -10,83 +12,112 @@ import ButtonPrimary from "@/shared/ButtonPrimary";
 import ButtonSecondary from "@/shared/ButtonSecondary";
 import ButtonClose from "@/shared/ButtonClose";
 import LikeSaveBtns from "@/components/LikeSaveBtns";
-import Image from "next/image";
-import { usePathname, useRouter } from "next/navigation";
-import { Amenities_demos } from "../constant";
+import EditButton from "@/components/EditButton";
+import DeleteButton from "@/components/DeleteButton";
 import StayDatesRangeInput from "../StayDatesRangeInput";
 import GuestsInput from "../GuestsInput";
 import SectionDateRange from "../../SectionDateRange";
-
 import { AuthorType, StayDataType } from '@/data/types';
 import fetchStayListingById from '@/api/fetchStayListingById';
 import fetchAuthorById from "@/api/fetchAuthorById";
+import { deleteStayListing } from "@/api/stayServices";
+import { useAuth } from '@/contexts/authContext';
+import type { Route } from "@/routers/types";
 
 const ListingStayDetailPage = () => {
   const pathname = usePathname();
+  const router = useRouter();
+  const { user } = useAuth();
   const [listing, setListing] = useState<StayDataType | null>(null);
   const [author, setAuthor] = useState<AuthorType | null>(null);
   const [unavailableDates, setUnavailableDates] = useState<Date[]>([]);
   const [isOpenModalAmenities, setIsOpenModalAmenities] = useState(false);
+  const [isOpenModalImageGallery, setIsOpenModalImageGallery] = useState(false);
 
+  const googleMapsEmbedUrl = useMemo(() => {
+    if (!listing) return ""; 
+    const addressQuery = encodeURIComponent(`${listing.street}, ${listing.postalCode}, ${listing.city}, ${listing.country}`);
+    return `https://www.google.com/maps/embed/v1/place?key=AIzaSyAyXWlzjN4b3X9kQllFwTeJwFVa1Eqhb-8&q=${addressQuery}`;
+  }, [listing]);
 
-    const googleMapsEmbedUrl = useMemo(() => {
-      if (!listing) return ""; 
-    
-      const addressQuery = encodeURIComponent(`${listing.street}, ${listing.postalCode}, ${listing.city}, ${listing.country}`);
-    
-      return `https://www.google.com/maps/embed/v1/place?key=AIzaSyAyXWlzjN4b3X9kQllFwTeJwFVa1Eqhb-8&q=${addressQuery}`;
-    }, [listing]);
-    
-  
-
-    useEffect(() => {
-      const id = pathname.split('/').pop();
-      if (id) {
-        fetchStayListingById(id)
-          .then(data => {
-            setListing(data);
-          // Convert availableDates to Date objects for the DatePicker
+  useEffect(() => {
+    const id = pathname.split('/').pop();
+    if (id) {
+      fetchStayListingById(id)
+        .then(data => {
+          setListing(data);
           const convertedUnavailableDates = data.availableDates.map(dateStr => new Date(dateStr));
           setUnavailableDates(convertedUnavailableDates);
-            // Fetch author details as soon as we have the listing data
-            return fetchAuthorById(data.authorId); // Assuming your listing data includes authorId
-          })
-          .then(authorData => {
-            setAuthor(authorData);
-          })
-          .catch(error => console.error(error));
+          return fetchAuthorById(data.authorId);
+        })
+        .then(authorData => {
+          setAuthor(authorData);
+        })
+        .catch(error => console.error(error));
+    }
+  }, [pathname]);
+
+  const handleOpenModalImageGallery = () => {
+    const params = new URLSearchParams(window.location.search);
+    params.set("modal", "PHOTO_TOUR_SCROLLABLE");
+    router.push(`${pathname}?${params.toString()}` as unknown as Route);
+  };
+
+  const handleCloseModalImageGallery = () => {
+    const params = new URLSearchParams(window.location.search);
+    params.delete("modal");
+    router.push(`${pathname}?${params.toString()}` as unknown as Route);
+  };
+
+  const closeModalAmenities = () => setIsOpenModalAmenities(false);
+  const openModalAmenities = () => setIsOpenModalAmenities(true);
+
+  const handleEditListing = () => {
+    if (listing) {
+      sessionStorage.setItem('listingFormData', JSON.stringify(listing));
+      sessionStorage.setItem('originalAuthorId', listing.authorId.toString());
+      router.push(`/add-listing/1`);
+    }
+  };
+
+  const handleDeleteListing = async () => {
+    if (listing) {
+      const confirmDelete = confirm("Are you sure you want to delete this listing?");
+      if (confirmDelete) {
+        try {
+          await deleteStayListing(listing.id.toString());
+          router.push("/");
+        } catch (error) {
+          console.error("Failed to delete listing:", error);
+        }
       }
-    }, [pathname]);
+    }
+  };
 
-  function closeModalAmenities() {
-    setIsOpenModalAmenities(false);
-  }
-
-  function openModalAmenities() {
-    setIsOpenModalAmenities(true);
-  }
+  const isUserAuthorized = user && (user.id === listing?.authorId || user.role === "FOUNDER");
 
   if (!listing) return <div>Loading...</div>;
 
   const address = `${listing.street} ${listing.postalCode}, ${listing.city}, ${listing.country}`;
-  
-
 
   const renderSection1 = () => {
     return (
       <div className="listingSection__wrap !space-y-6">
-        {/* 1 */}
         <div className="flex justify-between items-center">
           <Badge name={listing.propertyType} />
-          <LikeSaveBtns />
+          <div className="flex items-center space-x-3">
+            <LikeSaveBtns />
+            {isUserAuthorized && (
+              <>
+                <EditButton onClick={handleEditListing} />
+                <DeleteButton onClick={handleDeleteListing} />
+              </>
+            )}
+          </div>
         </div>
-
-        {/* 2 */}
         <h2 className="text-2xl sm:text-3xl lg:text-4xl font-semibold">
           {listing.title}
         </h2>
-
-        {/* 3 */}
         <div className="flex items-center space-x-4">
           <StartRating />
           <span>·</span>
@@ -95,10 +126,8 @@ const ListingStayDetailPage = () => {
             <span className="ml-1"> {listing.country}, {listing.city}</span>
           </span>
         </div>
-
-        {/* 4 */}
         <div className="flex items-center">
-          <Avatar imgUrl={author?.avatar}hasChecked sizeClass="h-10 w-10" radius="rounded-full" />
+          <Avatar imgUrl={author?.avatar} hasChecked sizeClass="h-10 w-10" radius="rounded-full" />
           <span className="ml-2.5 text-neutral-500 dark:text-neutral-400">
             Hosted by{" "}
             <span className="text-neutral-900 dark:text-neutral-200 font-medium">
@@ -106,40 +135,54 @@ const ListingStayDetailPage = () => {
             </span>
           </span>
         </div>
-
-        {/* 5 */}
         <div className="w-full border-b border-neutral-100 dark:border-neutral-700" />
-
-        {/* 6 */}
         <div className="flex items-center justify-between xl:justify-start space-x-8 xl:space-x-12 text-sm text-neutral-700 dark:text-neutral-300">
-          <div className="flex items-center space-x-3 ">
-            <i className=" las la-user color-yellow-accent text-2xl "></i>
-            <span className="">
-              {listing.maxGuests} <span className="hidden sm:inline-block">Guests</span>
-            </span>
-          </div>
-          <div className="flex items-center space-x-3">
-            <i className=" las la-bed color-yellow-accent text-2xl"></i>
-            <span className=" ">
-              {listing.beds} <span className="hidden sm:inline-block">Beds</span>
-            </span>
-          </div>
-          <div className="flex items-center space-x-3">
-            <i className=" las la-bath color-yellow-accent text-2xl"></i>
-            <span className=" ">
-              {listing.bathrooms} <span className="hidden sm:inline-block">Baths</span>
-            </span>
-          </div>
-          <div className="flex items-center space-x-3">
-            <i className=" las la-door-open color-yellow-accent text-2xl"></i>
-            <span className=" ">
-              {listing.bedrooms} <span className="hidden sm:inline-block">Bedrooms</span>
-            </span>
-          </div>
+          {listing.maxGuests && (
+            <div className="flex items-center space-x-3">
+              <i className="las la-user color-yellow-accent text-2xl"></i>
+              <span>
+                {listing.maxGuests} <span className="hidden sm:inline-block">{listing.maxGuests === 1 ? "Guest" : "Guests"}</span>
+              </span>
+            </div>
+          )}
+          {listing.beds && (
+            <div className="flex items-center space-x-3">
+              <i className="las la-bed color-yellow-accent text-2xl"></i>
+              <span>
+                {listing.beds} <span className="hidden sm:inline-block">{listing.beds === 1 ? "Bed" : "Beds"}</span>
+              </span>
+            </div>
+          )}
+          {listing.bathrooms && (
+            <div className="flex items-center space-x-3">
+              <i className="las la-bath color-yellow-accent text-2xl"></i>
+              <span>
+                {listing.bathrooms} <span className="hidden sm:inline-block">{listing.bathrooms === 1 ? "Bath" : "Baths"}</span>
+              </span>
+            </div>
+          )}
+          {listing.bedrooms && (
+            <div className="flex items-center space-x-3">
+              <i className="las la-door-open color-yellow-accent text-2xl"></i>
+              <span>
+                {listing.bedrooms} <span className="hidden sm:inline-block">{listing.bedrooms === 1 ? "Bedroom" : "Bedrooms"}</span>
+              </span>
+            </div>
+          )}
+          {listing.kitchens && (
+            <div className="flex items-center space-x-3">
+              <i className="las la-utensils color-yellow-accent text-2xl"></i>
+              <span>
+                {listing.kitchens} <span className="hidden sm:inline-block">{listing.kitchens === 1 ? "Kitchen" : "Kitchens"}</span>
+              </span>
+            </div>
+          )}
         </div>
       </div>
     );
   };
+  
+
 
   const renderSection2 = () => {
     return (
@@ -147,10 +190,8 @@ const ListingStayDetailPage = () => {
         <h2 className="text-2xl font-semibold">Stay Information</h2>
         <div className="w-14 border-b border-neutral-200 dark:border-neutral-700"></div>
         <div className="text-neutral-600 dark:text-neutral-300">
-        <span>
-        {listing.accommodationDescription}
-        </span>
-      </div>
+          <span>{listing.accommodationDescription}</span>
+        </div>
       </div>
     );
   };
@@ -165,18 +206,15 @@ const ListingStayDetailPage = () => {
           </span>
         </div>
         <div className="w-14 border-b border-neutral-200 dark:border-neutral-700"></div>
-        {/* 6 */}
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 text-sm text-neutral-700 dark:text-neutral-300">
-      {listing.amenityNames.map((amenityName) => (
-        <div key={amenityName} className="flex items-center space-x-3">
-          <i className={`text-3xl color-yellow-accent las la-check-circle`}></i>
-          <span>{amenityName}</span>
+          {listing.amenityNames.map((amenityName) => (
+            <div key={amenityName} className="flex items-center space-x-3">
+              <i className={`text-3xl color-yellow-accent las la-check-circle`}></i>
+              <span>{amenityName}</span>
+            </div>
+          ))}
         </div>
-      ))}
-    </div>
-
-        {/* ----- */}
-        <div className="w-14 border-b border-neutral-200"></div>
+        <div className="w-14 border-b border-neutral-200 dark:border-neutral-700"></div>
         <div>
           <ButtonSecondary onClick={openModalAmenities}>
             View All
@@ -189,7 +227,7 @@ const ListingStayDetailPage = () => {
 
   const renderMotalAmenities = () => {
     return (
-      <Transition appear show={isOpenModalAmenities} as={Fragment}>
+      <Transition appear show={isOpenModalAmenities} as={React.Fragment}>
         <Dialog
           as="div"
           className="fixed inset-0 z-50 overflow-y-auto"
@@ -197,7 +235,7 @@ const ListingStayDetailPage = () => {
         >
           <div className="min-h-screen px-4 text-center">
             <Transition.Child
-              as={Fragment}
+              as={React.Fragment}
               enter="ease-out duration-300"
               enterFrom="opacity-0"
               enterTo="opacity-100"
@@ -208,15 +246,11 @@ const ListingStayDetailPage = () => {
               <Dialog.Overlay className="fixed inset-0 bg-black bg-opacity-40" />
             </Transition.Child>
 
-            {/* This element is to trick the browser into centering the modal contents. */}
-            <span
-              className="inline-block h-screen align-middle"
-              aria-hidden="true"
-            >
+            <span className="inline-block h-screen align-middle" aria-hidden="true">
               &#8203;
             </span>
             <Transition.Child
-              as={Fragment}
+              as={React.Fragment}
               enter="ease-out duration-300"
               enterFrom="opacity-0 scale-95"
               enterTo="opacity-100 scale-100"
@@ -227,26 +261,18 @@ const ListingStayDetailPage = () => {
               <div className="inline-block py-8 h-screen w-full max-w-4xl">
                 <div className="inline-flex pb-2 flex-col w-full text-left align-middle transition-all transform overflow-hidden rounded-2xl bg-white dark:bg-neutral-900 dark:border dark:border-neutral-700 dark:text-neutral-100 shadow-xl h-full">
                   <div className="relative flex-shrink-0 px-6 py-4 border-b border-neutral-200 dark:border-neutral-800 text-center">
-                    <h3
-                      className="text-lg font-medium leading-6 color-yellow-accent"
-                      id="headlessui-dialog-title-70"
-                    >
+                    <h3 className="text-lg font-medium leading-6 color-yellow-accent" id="headlessui-dialog-title-70">
                       Amenities
                     </h3>
                     <span className="absolute left-3 top-3">
                       <ButtonClose onClick={closeModalAmenities} />
                     </span>
                   </div>
-                  <div className="px-8 overflow-auto text-neutral-700 dark:text-neutral-300 divide-y divide-neutral-200">
-                    {Amenities_demos.filter((_, i) => i < 1212).map((item) => (
-                      <div
-                        key={item.name}
-                        className="flex items-center py-2.5 sm:py-4 lg:py-5 space-x-5 lg:space-x-8"
-                      >
-                        <i
-                          className={`text-4xl color-yellow-accent las ${item.icon}`}
-                        ></i>
-                        <span>{item.name}</span>
+                  <div className="px-8 overflow-auto text-neutral-700 dark:text-neutral-300 divide-y divide-neutral-200 dark:divide-neutral-700">
+                    {listing.amenityNames.map((amenityName) => (
+                      <div key={amenityName} className="flex items-center py-2.5 sm:py-4 lg:py-5 space-x-5 lg:space-x-8">
+                        <i className={`text-4xl color-yellow-accent las la-check-circle`}></i>
+                        <span>{amenityName}</span>
                       </div>
                     ))}
                   </div>
@@ -260,65 +286,71 @@ const ListingStayDetailPage = () => {
   };
 
   const renderSection4 = () => {
+    const formatNights = (nights: number | null): string => {
+      if (nights === null) return "Not specified";
+      return `${nights} Night${nights === 1 ? '' : 's'}`;
+    };
+  
+    const formatDiscount = (discount: number | null): string => {
+      if (discount === null || discount === 0) return "Not specified";
+      return `-${discount} %`;
+    };
+  
     return (
       <div className="listingSection__wrap">
-        {/* HEADING */}
         <div>
           <h2 className="text-2xl font-semibold">Room Rates </h2>
           <span className="block mt-2 text-neutral-500 dark:text-neutral-400">
-          Rates are subject to change during weekends and holiday periods
+            Rates are subject to change during weekends and holiday periods
           </span>
         </div>
         <div className="w-14 border-b border-neutral-200 dark:border-neutral-700"></div>
-        {/* CONTENT */}
         <div className="flow-root">
           <div className="text-sm sm:text-base text-neutral-6000 dark:text-neutral-300 -mb-4">
             <div className="p-4 bg-neutral-100 dark:color-yellow-background flex justify-between items-center space-x-4 rounded-lg">
               <span>Monday - Thursday</span>
               <span>${listing.weekdayPrice}</span>
             </div>
-            <div className="p-4  flex justify-between items-center space-x-4 rounded-lg">
-            <span>Friday - Sunday</span>
+            <div className="p-4 flex justify-between items-center space-x-4 rounded-lg">
+              <span>Friday - Sunday</span>
               <span>${listing.weekendPrice}</span>
             </div>
             <div className="p-4 bg-neutral-100 dark:color-yellow-background flex justify-between items-center space-x-4 rounded-lg">
-              <span>Rent by Month</span>
-              <span>-{listing.longTermStayDiscount} %</span>
+              <span>Discount by Month</span>
+              <span>{formatDiscount(listing.longTermStayDiscount)}</span>
             </div>
-            <div className="p-4  flex justify-between items-center space-x-4 rounded-lg">
+            <div className="p-4 flex justify-between items-center space-x-4 rounded-lg">
               <span>Min. Number of Nights</span>
-              <span>{listing.minimumNights} Night/s</span>
+              <span>{formatNights(listing.minimumNights)}</span>
             </div>
             <div className="p-4 bg-neutral-100 dark:color-yellow-background flex justify-between items-center space-x-4 rounded-lg">
               <span>Max. Number of Nights</span>
-              <span>{listing.maximumNights} Night/s</span>
+              <span>{formatNights(listing.maximumNights)}</span>
             </div>
           </div>
-          <br></br>
+          <br />
         </div>
       </div>
     );
   };
-
   
+  
+
   const renderSection5 = () => {
     return (
       <div className="listingSection__wrap">
-        {/* HEADING */}
         <h2 className="text-2xl font-semibold">Things to Know</h2>
         <div className="w-14 border-b border-neutral-200 dark:border-neutral-700" />
-
-        {/* CONTENT */}
         <div>
           <h4 className="text-lg font-semibold">Cancellation Policy</h4>
           <span className="block mt-3 text-neutral-500 dark:text-neutral-400">
-          Customers will receive a 50% refund of the booking value if they cancel the reservation within 48 hours of a successful booking and at least 14 days prior to the scheduled check-in time. <br /> <br/>
-          Furthermore, if a reservation is canceled at least 14 days before the check-in date, guests are eligible for a 50% refund of the total amount paid, excluding the service fee.
+            Customers will receive a 50% refund of the booking value if they cancel the reservation within 48 hours of a successful booking and at least 14 days prior to the scheduled check-in time.
+            <br />
+            <br />
+            Furthermore, if a reservation is canceled at least 14 days before the check-in date, guests are eligible for a 50% refund of the total amount paid, excluding the service fee.
           </span>
         </div>
         <div className="w-14 border-b border-neutral-200 dark:border-neutral-700" />
-
-        {/* CONTENT */}
         <div>
           <h4 className="text-lg font-semibold">Be Sure To:</h4>
           <div className="mt-3 text-neutral-500 dark:text-neutral-400 max-w-md text-sm sm:text-base">
@@ -333,26 +365,28 @@ const ListingStayDetailPage = () => {
           </div>
         </div>
         <div className="w-14 border-b border-neutral-200 dark:border-neutral-700" />
-
-        {/* CONTENT */}
         <div>
           <h4 className="text-lg font-semibold">Special Notes</h4>
           <div className="prose sm:prose">
-          <ul className="mt-3 text-neutral-500 dark:text-neutral-400 space-y-2">
-          <li>
-          {listing.specialRestrictions}
-          </li>
-        </ul>
+            <ul className="mt-3 text-neutral-500 dark:text-neutral-400 space-y-2">
+              {listing.specialRestrictions && listing.specialRestrictions.length > 0 ? (
+                listing.specialRestrictions.map((restriction, index) => (
+                  <li key={index}>{restriction}</li>
+                ))
+              ) : (
+                <li>None specified.</li>
+              )}
+            </ul>
           </div>
         </div>
       </div>
     );
   };
 
+
   const renderSection6 = () => {
     return (
       <div className="listingSection__wrap">
-        {/* HEADING */}
         <div>
           <h2 className="text-2xl font-semibold">Location</h2>
           <span className="block mt-2 text-neutral-500 dark:text-neutral-400">
@@ -360,8 +394,6 @@ const ListingStayDetailPage = () => {
           </span>
         </div>
         <div className="w-14 border-b border-neutral-200 dark:border-neutral-700" />
-
-        {/* MAP */}
         <div className="aspect-w-5 aspect-h-5 sm:aspect-h-3 ring-1 ring-black/10 rounded-xl z-0">
           <div className="rounded-xl overflow-hidden z-0">
             <iframe
@@ -370,8 +402,8 @@ const ListingStayDetailPage = () => {
               loading="lazy"
               allowFullScreen
               referrerPolicy="no-referrer-when-downgrade"
-              src={googleMapsEmbedUrl} 
-            ></iframe>
+              src={googleMapsEmbedUrl}
+            />
           </div>
         </div>
       </div>
@@ -381,11 +413,8 @@ const ListingStayDetailPage = () => {
   const renderSection7 = () => {
     return (
       <div className="listingSection__wrap">
-        {/* HEADING */}
         <h2 className="text-2xl font-semibold">Host Information</h2>
-        <div className="w-14 border-b border-neutral-200 dark:border-neutral-700"></div>
-
-        {/* host */}
+        <div className="w-14 border-b border-neutral-200 dark:border-neutral-700" />
         <div className="flex items-center space-x-4">
           <Avatar
             hasChecked
@@ -401,19 +430,15 @@ const ListingStayDetailPage = () => {
               {author?.username}
             </a>
             <div className="mt-1.5 flex items-center text-sm text-neutral-500 dark:text-neutral-400">
-              <StartRating point={author?.starRating}/>
+              <StartRating point={author?.starRating} />
               <span className="mx-2">·</span>
               <span> {author?.count}</span>
             </div>
           </div>
         </div>
-
-        {/* desc */}
         <span className="block text-neutral-6000 dark:text-neutral-300">
-        {author?.description}
+          {author?.description}
         </span>
-
-        {/* info */}
         <div className="block text-neutral-500 dark:text-neutral-400 space-y-2.5">
           <div className="flex items-center space-x-3">
             <svg
@@ -433,9 +458,7 @@ const ListingStayDetailPage = () => {
             <span>Joined in March 2024</span>
           </div>
         </div>
-
-        {/* == */}
-        <div className="w-14 border-b border-neutral-200 dark:border-neutral-700"></div>
+        <div className="w-14 border-b border-neutral-200 dark:border-neutral-700" />
         <div>
           <ButtonSecondary href="/author">See Host Profile</ButtonSecondary>
         </div>
@@ -443,50 +466,9 @@ const ListingStayDetailPage = () => {
     );
   };
 
-  // const renderSection8 = () => {
-  //   return (
-  //     <div className="listingSection__wrap">
-  //       {/* HEADING */}
-  //       <h2 className="text-2xl font-semibold">Reviews (23 reviews)</h2>
-  //       <div className="w-14 border-b border-neutral-200 dark:border-neutral-700"></div>
-
-  //       {/* Content */}
-  //       <div className="space-y-5">
-  //         <FiveStartIconForRate iconClass="w-6 h-6" className="space-x-0.5" />
-  //         <div className="relative">
-  //           <Input
-  //             fontClass=""
-  //             sizeClass="h-16 px-4 py-3"
-  //             rounded="rounded-3xl"
-  //             placeholder="Share your thoughts ..."
-  //           />
-  //           <ButtonCircle
-  //             className="absolute right-2 top-1/2 transform -translate-y-1/2"
-  //             size=" w-12 h-12 "
-  //           >
-  //             <ArrowRightIcon className="w-5 h-5" />
-  //           </ButtonCircle>
-  //         </div>
-  //       </div>
-
-  //       {/* comment */}
-  //       <div className="divide-y divide-neutral-100 dark:divide-neutral-800">
-  //         <CommentListing className="py-8" />
-  //         <CommentListing className="py-8" />
-  //         <CommentListing className="py-8" />
-  //         <CommentListing className="py-8" />
-  //         <div className="pt-8">
-  //           <ButtonSecondary>View More Reviews</ButtonSecondary>
-  //         </div>
-  //       </div>
-  //     </div>
-  //   );
-  // };
-
   const renderSidebar = () => {
     return (
       <div className="listingSectionSidebar__wrap shadow-xl">
-        {/* PRICE */}
         <div className="flex justify-between">
           <span className="text-3xl font-semibold">
             ${listing.weekdayPrice}
@@ -496,15 +478,11 @@ const ListingStayDetailPage = () => {
           </span>
           <StartRating />
         </div>
-
-        {/* FORM */}
         <form className="flex flex-col border border-neutral-200 dark:border-neutral-700 rounded-3xl ">
           <StayDatesRangeInput className="flex-1 z-[11]" />
           <div className="w-full border-b border-neutral-200 dark:border-neutral-700"></div>
           <GuestsInput className="flex-1" />
         </form>
-
-        {/* SUM */}
         <div className="flex flex-col space-y-4">
           <div className="flex justify-between text-neutral-6000 dark:text-neutral-300">
             <span>${listing.weekdayPrice} x 3 Night/s</span>
@@ -520,21 +498,19 @@ const ListingStayDetailPage = () => {
             <span>$75</span>
           </div>
         </div>
-
-        {/* SUBMIT */}
         <ButtonPrimary href={"/checkout"}>Reserve</ButtonPrimary>
       </div>
     );
   };
 
-  return (
+   return (
     <div className="nc-ListingStayDetailPage">
-      {/*  HEADER */}
       <header className="rounded-md sm:rounded-xl">
         <div className="relative grid grid-cols-3 sm:grid-cols-4 gap-1 sm:gap-2">
           {listing && listing.galleryImageUrls.length > 0 && (
             <div
               className="col-span-2 row-span-3 sm:row-span-2 relative rounded-md sm:rounded-xl overflow-hidden cursor-pointer"
+              onClick={handleOpenModalImageGallery}
             >
               <Image
                 fill
@@ -555,24 +531,30 @@ const ListingStayDetailPage = () => {
                 <div className="aspect-w-4 aspect-h-3 sm:aspect-w-6 sm:aspect-h-5">
                   <Image
                     fill
-                    className="object-cover rounded-md sm:rounded-xl "
-                    src={item || ""}
+                    className="object-cover rounded-md sm:rounded-xl"
+                    src={item}
                     alt=""
                     sizes="400px"
                   />
                 </div>
-                {/* OVERLAY */}
                 <div
                   className="absolute inset-0 bg-neutral-900 bg-opacity-20 opacity-0 hover:opacity-100 transition-opacity cursor-pointer"
+                  onClick={handleOpenModalImageGallery}
                 />
               </div>
             ))}
+          <button
+            className="absolute hidden md:flex md:items-center md:justify-center left-3 bottom-3 px-4 py-2 rounded-xl bg-neutral-nav text-neutral-500 hover:bg-neutral-200 z-10"
+            onClick={handleOpenModalImageGallery}
+          >
+            <Squares2X2Icon className="w-5 h-5" />
+            <span className="ml-2 text-neutral-800 text-sm font-medium">
+              Show All Photos
+            </span>
+          </button>
         </div>
       </header>
-
-      {/* MAIN */}
-      <main className=" relative z-10 mt-11 flex flex-col lg:flex-row ">
-        {/* CONTENT */}
+      <main className="relative z-10 mt-11 flex flex-col lg:flex-row">
         <div className="w-full lg:w-3/5 xl:w-2/3 space-y-8 lg:space-y-10 lg:pr-10">
           {renderSection1()}
           {renderSection2()}
@@ -582,10 +564,7 @@ const ListingStayDetailPage = () => {
           {renderSection5()}
           {renderSection6()}
           {renderSection7()}
-          {/* {renderSection8()} */}
         </div>
-
-        {/* SIDEBAR */}
         <div className="hidden lg:block flex-grow mt-14 lg:mt-0">
           <div className="sticky top-28">{renderSidebar()}</div>
         </div>

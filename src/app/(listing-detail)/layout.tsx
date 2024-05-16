@@ -4,31 +4,47 @@ import BackgroundSection from "@/components/BackgroundSection";
 import ListingImageGallery from "@/components/listing-image-gallery/ListingImageGallery";
 import SectionSliderNewCategories from "@/components/SectionSliderNewCategories";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import React, { ReactNode } from "react";
+import React, { ReactNode, useEffect, useState } from "react";
 import MobileFooterSticky from "./(components)/MobileFooterSticky";
-import { imageGallery as listingStayImageGallery } from "./listing-stay-detail/constant";
+import { ListingGalleryImage, StayDataType } from "@/data/types"; // Adjust the path as needed
 import { Route } from "next";
+import fetchStayListingById from "@/api/fetchStayListingById"; // Adjust the path as needed
 
 const DetailtLayout = ({ children }: { children: ReactNode }) => {
   const router = useRouter();
-  const thisPathname = usePathname();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const modal = searchParams?.get("modal");
+
+  const [images, setImages] = useState<ListingGalleryImage[]>([]);
 
   const handleCloseModalImageGallery = () => {
     let params = new URLSearchParams(document.location.search);
     params.delete("modal");
-    router.push(`${thisPathname}/?${params.toString()}` as Route);
+    router.push(`${pathname}?${params.toString()}` as unknown as Route);
   };
 
   const getImageGalleryListing = () => {
-    if (thisPathname?.includes("/listing-stay-detail")) {
-      return listingStayImageGallery;
+    if (pathname?.includes("/listing-stay-detail")) {
+      return images;
     }
-
-
     return [];
   };
+
+  useEffect(() => {
+    const id = pathname.split('/').pop();
+    if (id) {
+      fetchStayListingById(id)
+        .then((data: StayDataType) => {
+          const formattedImages = data.galleryImageUrls.map((url: string, index: number) => ({
+            id: index,
+            url,
+          }));
+          setImages(formattedImages);
+        })
+        .catch(error => console.error(error));
+    }
+  }, [pathname]);
 
   return (
     <div className="ListingDetailPage">

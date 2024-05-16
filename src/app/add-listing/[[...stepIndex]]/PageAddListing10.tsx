@@ -1,14 +1,28 @@
 import StayCard from "@/components/StayCard";
 import { DEMO_STAY_LISTINGS } from "@/data/listings";
-import React, { FC } from "react";
+import React, { FC, useEffect } from "react";
 import ButtonPrimary from "@/shared/ButtonPrimary";
 import ButtonSecondary from "@/shared/ButtonSecondary";
 import { EyeIcon, PencilSquareIcon } from "@heroicons/react/24/outline";
 import { Route } from "@/routers/types";
+import { useListingForm } from '@/contexts/ListingFormContext';
 
 export interface PageAddListing10Props {}
 
 const PageAddListing10: FC<PageAddListing10Props> = () => {
+  const { listingData, setFormValid, updateListingData } = useListingForm();
+
+  useEffect(() => {
+    setFormValid(true);
+
+    // Set the listing creation date if it's not already set
+    if (!listingData.date) {
+      const currentDate = new Date();
+      const formattedDate = currentDate.toISOString().split('T')[0]; // Format as yyyy-MM-dd
+      updateListingData({ ...listingData, date: formattedDate });
+    }
+  }, [setFormValid, listingData, updateListingData]);
+
   return (
     <>
       <div>
@@ -25,7 +39,9 @@ const PageAddListing10: FC<PageAddListing10Props> = () => {
         <div className="max-w-xs">
           <StayCard
             className="mt-8"
-            data={{ ...DEMO_STAY_LISTINGS[0], reviewStart: 0 }}
+            data={listingData}
+            showLikeButton={false}
+            isLinkActive={false}
           />
         </div>
         <div className="flex items-center space-x-5 mt-8">
@@ -33,11 +49,6 @@ const PageAddListing10: FC<PageAddListing10Props> = () => {
             <PencilSquareIcon className="color-yellow-accent h-5 w-5" />
             <span className="ml-3">Edit</span>
           </ButtonSecondary>
-
-          <ButtonPrimary>
-            <EyeIcon className="h-5 w-5" />
-            <span className="ml-3">Preview</span>
-          </ButtonPrimary>
         </div>
       </div>
       {/*  */}

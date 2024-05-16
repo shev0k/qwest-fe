@@ -1,9 +1,10 @@
-import axios, { AxiosError } from 'axios';
+import axios from 'axios';
+import axiosInstance from '@/api/axiosConfig';
 import { AuthorType } from "@/data/types";
 
 const fetchAuthorById = async (authorId: number): Promise<AuthorType> => {
   try {
-    const response = await axios.get<AuthorType>(`${process.env.NEXT_PUBLIC_BACKEND_URL}/authors/${authorId}`);
+    const response = await axiosInstance.get<AuthorType>(`${process.env.NEXT_PUBLIC_BACKEND_URL}/authors/${authorId}`);
     return response.data;
   } catch (error) {
     if (axios.isAxiosError(error)) {

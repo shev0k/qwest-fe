@@ -1,100 +1,165 @@
-import React, { FC } from "react";
+import React, { FC, useCallback, useEffect, useState } from "react";
+import { useListingForm } from '@/contexts/ListingFormContext';
 
 export interface PageAddListing7Props {}
 
 const PageAddListing7: FC<PageAddListing7Props> = () => {
+  const { updateListingData, uploadImage, deleteImage, listingData, setFormValid } = useListingForm();
+  const [featuredImageError, setFeaturedImageError] = useState<string>('');
+  const [galleryImageError, setGalleryImageError] = useState<string>('');
+
+  const handleFileChange = useCallback(async (files: FileList | null, type: 'featured' | 'gallery') => {
+    if (!files) return;
+
+    const validFiles = Array.from(files).filter(file => /\.(jpg|jpeg|png|gif)$/i.test(file.name));
+    const allowedFiles = validFiles.slice(0, 5); // Limit gallery images to 5
+
+    try {
+      if (type === 'featured' && validFiles.length === 1) {
+        await uploadImage(validFiles[0], 'featured');
+        setFeaturedImageError('');
+      } else if (type === 'gallery') {
+        await Promise.all(allowedFiles.map(file => uploadImage(file, 'gallery')));
+        setGalleryImageError('');
+      }
+    } catch (error) {
+      console.error(`Failed to upload ${type} image(s):`, error);
+      if (type === 'featured') {
+        setFeaturedImageError('Failed to upload featured image.');
+      } else {
+        setGalleryImageError('Failed to upload gallery images.');
+      }
+    }
+  }, [uploadImage]);
+
+  const handleDelete = useCallback(async (url: string, type: 'featured' | 'gallery') => {
+    try {
+      await deleteImage(url);
+    } catch (error) {
+      console.error(`Failed to delete ${type} image:`, error);
+      // Continue with local state update regardless of cloud deletion success
+    } finally {
+      if (type === 'featured') {
+        updateListingData({ featuredImage: '' });
+      } else {
+        updateListingData({ galleryImageUrls: listingData.galleryImageUrls?.filter(imageUrl => imageUrl !== url) || [] });
+      }
+    }
+  }, [deleteImage, updateListingData, listingData.galleryImageUrls]);
+
+  const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault(); // Necessary to allow the drop event to fire
+  };
+
+  const handleDrop = useCallback((event: React.DragEvent<HTMLDivElement>, type: 'featured' | 'gallery') => {
+    event.preventDefault();
+    const files = event.dataTransfer.files;
+    handleFileChange(files, type);
+  }, [handleFileChange]);
+
+  useEffect(() => {
+    const hasFeaturedImage = !!listingData.featuredImage;
+    const hasGalleryImages = Array.isArray(listingData.galleryImageUrls) && listingData.galleryImageUrls.length >= 1 && listingData.galleryImageUrls.length <= 5;
+    setFormValid(hasFeaturedImage && hasGalleryImages);
+  }, [listingData.featuredImage, listingData.galleryImageUrls, setFormValid]);
+
   return (
     <>
       <div>
         <h2 className="text-2xl font-semibold">Stay Imagery</h2>
         <span className="block mt-2 text-neutral-500 dark:text-neutral-400">
-          Attractive photographs can significantly enhance guests&apos; connection with your accommodation
+          Attractive photographs can significantly enhance guests&apos; connection with your accommodation.
         </span>
       </div>
-
-
       <div className="w-14 border-b border-neutral-200 dark:border-neutral-700"></div>
-      {/* FORM */}
       <div className="space-y-8">
         <div>
           <span className="text-lg font-semibold">Cover Image</span>
-          <div className="mt-5 ">
-            <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-neutral-300 dark:border-neutral-6000 border-dashed rounded-md">
-              <div className="space-y-1 text-center">
-                <svg
-                  className="mx-auto h-12 w-12 text-neutral-400"
-                  stroke="currentColor"
-                  fill="none"
-                  viewBox="0 0 48 48"
-                  aria-hidden="true"
-                >
-                  <path
-                    d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  ></path>
-                </svg>
-                <div className="flex text-sm text-neutral-6000 dark:text-neutral-300">
-                  <label
-                    htmlFor="file-upload"
-                    className="relative cursor-pointer  rounded-md font-medium text-primary-6000 hover:text-primary-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-primary-500"
-                  >
+          <div className="mt-5">
+            <div
+              className="flex justify-center px-6 pt-5 pb-6 border-2 border-neutral-300 dark:border-neutral-600 border-dashed rounded-md"
+              onDragOver={handleDragOver}
+              onDrop={(e) => handleDrop(e, 'featured')}
+            >
+              <div className="space-y-3 text-center">
+                <input
+                  id="file-upload"
+                  name="file-upload"
+                  type="file"
+                  className="sr-only"
+                  disabled={!!listingData.featuredImage}
+                  onChange={(e) => handleFileChange(e.target.files, 'featured')}
+                  accept="image/png, image/jpeg, image/gif, image/jpg"
+                />
+                <label htmlFor="file-upload" className="cursor-pointer">
+                  <div className="flex text-sm text-neutral-600">
                     <span>Upload file</span>
-                    <input
-                      id="file-upload"
-                      name="file-upload"
-                      type="file"
-                      className="sr-only"
-                    />
-                  </label>
-                  <p className="pl-1">or drag and drop</p>
-                </div>
-                <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                  PNG, JPG, GIF up to 10MB
-                </p>
+                    <p className="pl-1">or drag and drop</p>
+                  </div>
+                  <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                    PNG, JPG, GIF up to 100MB
+                  </p>
+                </label>
+                {listingData.featuredImage && (
+                  <div className="flex gap-4 mt-4 justify-center">
+                    <div className="relative inline-block">
+                      <img src={listingData.featuredImage} alt="Featured" className="w-24 h-24 object-cover rounded-lg" />
+                      <div
+                        className="absolute inset-0 bg-black bg-opacity-40 flex justify-center items-center opacity-0 hover:opacity-100 transition-opacity duration-300 cursor-pointer"
+                        onClick={() => handleDelete(listingData.featuredImage, 'featured')}
+                      >
+                        <span className="text-white text-xl">✕</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {featuredImageError && <div className="text-red-500 text-sm">{featuredImageError}</div>}
               </div>
             </div>
           </div>
         </div>
-        {/* ----------------- */}
         <div>
-        <span className="text-lg font-semibold">Images of the Property</span>
-          <div className="mt-5 ">
-            <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-neutral-300 dark:border-neutral-6000 border-dashed rounded-md">
-              <div className="space-y-1 text-center">
-                <svg
-                  className="mx-auto h-12 w-12 text-neutral-400"
-                  stroke="currentColor"
-                  fill="none"
-                  viewBox="0 0 48 48"
-                  aria-hidden="true"
-                >
-                  <path
-                    d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  ></path>
-                </svg>
-                <div className="flex text-sm text-neutral-6000 dark:text-neutral-300">
-                  <label
-                    htmlFor="file-upload-2"
-                    className="relative cursor-pointer  rounded-md font-medium text-primary-6000 hover:text-primary-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-primary-500"
-                  >
-                    <span>Upload file/s</span>
-                    <input
-                      id="file-upload-2"
-                      name="file-upload-2"
-                      type="file"
-                      className="sr-only"
-                    />
-                  </label>
-                  <p className="pl-1">or drag and drop</p>
-                </div>
-                <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                  PNG, JPG, GIF up to 10MB
-                </p>
+          <span className="text-lg font-semibold">Images of the Property</span>
+          <div className="mt-5">
+            <div
+              className="flex justify-center px-6 pt-5 pb-6 border-2 border-neutral-300 dark:border-neutral-600 border-dashed rounded-md"
+              onDragOver={handleDragOver}
+              onDrop={(e) => handleDrop(e, 'gallery')}
+            >
+              <div className="space-y-3 text-center">
+                <input
+                  id="file-upload-2"
+                  name="file-upload-2"
+                  type="file"
+                  className="sr-only"
+                  disabled={listingData.galleryImageUrls?.length >= 5}
+                  onChange={(e) => handleFileChange(e.target.files, 'gallery')}
+                  accept="image/png, image/jpeg, image/gif, image/jpg"
+                />
+                <label htmlFor="file-upload-2" className="cursor-pointer">
+                  <div className="text-sm text-neutral-600">
+                    <span>Upload file/s or drag and drop</span>
+                  </div>
+                  <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                    PNG, JPG, GIF up to 100MB
+                  </p>
+                </label>
+                {listingData.galleryImageUrls && listingData.galleryImageUrls.length > 0 && (
+                  <div className="flex gap-4 mt-4 justify-center">
+                    {listingData.galleryImageUrls.map((url, index) => (
+                      <div key={index} className="relative inline-block">
+                        <img src={url} alt={`Gallery ${index}`} className="w-24 h-24 object-cover rounded-lg" />
+                        <div
+                          className="absolute inset-0 bg-black bg-opacity-40 flex justify-center items-center opacity-0 hover:opacity-100 transition-opacity duration-300 cursor-pointer"
+                          onClick={() => handleDelete(url, 'gallery')}
+                        >
+                          <span className="text-white text-xl">✕</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {galleryImageError && <div className="text-red-500 text-sm">{galleryImageError}</div>}
               </div>
             </div>
           </div>

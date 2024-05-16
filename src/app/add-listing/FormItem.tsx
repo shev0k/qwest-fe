@@ -6,6 +6,7 @@ export interface FormItemProps {
   className?: string;
   label?: string;
   desc?: string;
+  error?: string;
   children?: React.ReactNode;
 }
 
@@ -14,6 +15,7 @@ const FormItem: FC<FormItemProps> = ({
   className = "",
   label,
   desc,
+  error
 }) => {
   return (
     <div className={className}>
@@ -22,6 +24,11 @@ const FormItem: FC<FormItemProps> = ({
       {desc && (
         <span className="block mt-3 text-xs text-neutral-500 dark:text-neutral-400 ">
           {desc}
+        </span>
+      )}
+      {error && (
+        <span className="block mt-1 text-xs text-red-500">
+          {error}
         </span>
       )}
     </div>

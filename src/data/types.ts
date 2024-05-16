@@ -8,6 +8,12 @@ export interface CustomLink {
   targetBlank?: boolean;
 }
 
+export interface ListingGalleryImage {
+  id: number;
+  url: string;
+}
+
+
 //  ##########  PostDataType ######## //
 export interface TaxonomyType {
   id: string | number;
@@ -88,7 +94,7 @@ export interface StayDataType {
   kitchens: number;
   checkInHours: string;
   checkOutHours: string;
-  specialRestrictions: string;
+  specialRestrictions: string[];
   accommodationDescription: string;
   weekdayPrice: number;
   weekendPrice: number;
@@ -101,6 +107,12 @@ export interface StayDataType {
   amenityNames: string[];
   availableDates: string[];
   like: boolean;
+}
+
+export interface Amenity {
+  id: number;
+  name: string;
+  category: string;
 }
 
 //

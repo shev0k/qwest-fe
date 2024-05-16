@@ -7,15 +7,30 @@ const axiosInstance = axios.create({
   }
 });
 
-axiosInstance.interceptors.response.use(
-    response => response,
-    error => {
-      if (error.response && error.response.data) {
-        console.error("API error:", error.response.data);
-        throw new Error(error.response.data.message || "An API error occurred.");
+axiosInstance.interceptors.request.use(
+  config => {
+    if (typeof window !== 'undefined') {
+      const token = sessionStorage.getItem('token');
+      if (token && config.headers) {
+        config.headers.Authorization = `Bearer ${token}`;
       }
-      throw error;
     }
-  );
+    return config;
+  },
+  error => {
+    return Promise.reject(error);
+  }
+);
+
+axiosInstance.interceptors.response.use(
+  response => response,
+  error => {
+    if (error.response && error.response.data) {
+      console.error("API error:", error.response.data);
+      throw new Error(error.response.data.message || "An API error occurred.");
+    }
+    throw error;
+  }
+);
 
 export default axiosInstance;

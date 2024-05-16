@@ -9,13 +9,8 @@ interface SectionDateRangeProps {
 
 const SectionDateRange: FC<SectionDateRangeProps> = ({ additionalUnavailableDates = [] }) => {
   // Fake data for demonstration
-  const fakeUnavailableDates = [
-    new Date("2024/07/06"),
-    new Date("2024/07/09"),
-    new Date("2024/08/15"),
-  ];
     // Combine fake data with any additional unavailable dates passed as props
-    const combinedUnavailableDates = [...fakeUnavailableDates, ...additionalUnavailableDates];
+    const combinedUnavailableDates = [ ...additionalUnavailableDates];
 
 
   const renderSectionCheckIndate = () => {
@@ -25,7 +20,7 @@ const SectionDateRange: FC<SectionDateRangeProps> = ({ additionalUnavailableDate
         <div>
           <h2 className="text-2xl font-semibold">Availability</h2>
           <span className="block mt-2 text-neutral-500 dark:text-neutral-400">
-            Prices may increase on weekends or holidays
+          Below are the dates that are currently unavailable. Prices may be higher on weekends or holidays. 
           </span>
         </div>
         <div className="w-14 border-b border-neutral-200 dark:border-neutral-700"></div>

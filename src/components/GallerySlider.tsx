@@ -3,7 +3,7 @@
 import { ChevronLeftIcon, ChevronRightIcon } from "@heroicons/react/24/outline";
 import { AnimatePresence, motion, MotionConfig } from "framer-motion";
 import Image, { StaticImageData } from "next/image";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSwipeable } from "react-swipeable";
 import { variants } from "@/utils/animationVariants";
 import Link from "next/link";
@@ -11,10 +11,10 @@ import { Route } from "@/routers/types";
 
 export interface GallerySliderProps {
   className?: string;
-  galleryImageUrls: (string | StaticImageData)[];
+  galleryImageUrls?: (string | StaticImageData)[]; // Made optional
   ratioClass?: string;
-  uniqueID: string;
-  href?: Route<string>;
+  uniqueID?: string;
+  href?: Route;
   imageClass?: string;
   galleryClass?: string;
   navigation?: boolean;
@@ -22,7 +22,7 @@ export interface GallerySliderProps {
 
 export default function GallerySlider({
   className = "",
-  galleryImageUrls,
+  galleryImageUrls = [], // Default to empty array
   ratioClass = "aspect-w-4 aspect-h-3",
   imageClass = "",
   uniqueID = "uniqueID",
@@ -33,20 +33,30 @@ export default function GallerySlider({
   const [loaded, setLoaded] = useState(false);
   const [index, setIndex] = useState(0);
   const [direction, setDirection] = useState(0);
-  const images = galleryImageUrls;
+
+  // Ensure galleryImageUrls is defined and not empty
+  const images = galleryImageUrls.length > 0 ? galleryImageUrls : ["/path/to/default/image.jpg"];
 
   function changePhotoId(newVal: number) {
-    if (newVal > index) {
+    if (newVal >= images.length) {
+      setIndex(0); // Wrap to first image if index exceeds length
       setDirection(1);
-    } else {
+    } else if (newVal < 0) {
+      setIndex(images.length - 1); // Wrap to last image if index is below 0
       setDirection(-1);
+    } else {
+      if (newVal > index) {
+        setDirection(1);
+      } else {
+        setDirection(-1);
+      }
+      setIndex(newVal);
     }
-    setIndex(newVal);
   }
 
   const handlers = useSwipeable({
     onSwipedLeft: () => {
-      if (index < images?.length - 1) {
+      if (index < images.length - 1) {
         changePhotoId(index + 1);
       }
     },
@@ -105,24 +115,29 @@ export default function GallerySlider({
           {/* Buttons */}
           {loaded && navigation && (
             <div className="opacity-0 group-hover/cardGallerySlider:opacity-100 transition-opacity ">
-              {index > 0 && (
-                <button
-                  className="absolute w-8 h-8 left-3 top-[calc(50%-16px)] bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-6000 dark:hover:border-neutral-500 rounded-full flex items-center justify-center hover:border-neutral-300 focus:outline-none"
-                  style={{ transform: "translate3d(0, 0, 0)" }}
-                  onClick={() => changePhotoId(index - 1)}
-                >
-                  <ChevronLeftIcon className="h-4 w-4" />
-                </button>
-              )}
-              {index + 1 < images.length && (
-                <button
-                  className="absolute w-8 h-8 right-3 top-[calc(50%-16px)] bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-6000 dark:hover:border-neutral-500 rounded-full flex items-center justify-center hover:border-neutral-300 focus:outline-none"
-                  style={{ transform: "translate3d(0, 0, 0)" }}
-                  onClick={() => changePhotoId(index + 1)}
-                >
-                  <ChevronRightIcon className="h-4 w-4" />
-                </button>
-              )}
+              <button
+                className="absolute w-8 h-8 left-3 top-[calc(50%-16px)] bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-6000 dark:hover:border-neutral-500 rounded-full flex items-center justify-center hover:border-neutral-300 focus:outline-none"
+                style={{ transform: "translate3d(0, 0, 0)" }}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  changePhotoId(index - 1);
+                }}
+              >
+                <ChevronLeftIcon className="h-4 w-4" />
+              </button>
+
+              <button
+                className="absolute w-8 h-8 right-3 top-[calc(50%-16px)] bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-6000 dark:hover:border-neutral-500 rounded-full flex items-center justify-center hover:border-neutral-300 focus:outline-none"
+                style={{ transform: "translate3d(0, 0, 0)" }}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  changePhotoId(index + 1);
+                }}
+              >
+                <ChevronRightIcon className="h-4 w-4" />
+              </button>
             </div>
           )}
 
