@@ -21,7 +21,9 @@ export interface UserType {
     loginUser: (userData: UserType & { token: string }) => void;
     logoutUser: () => void;
     updateUserDetails: (userData: UserType) => Promise<void>;
-  }
+    updateUserAvatar: (id: number, file: File, token: string) => Promise<void>;
+}
+
   
   export interface SignUpData {
     email: string;

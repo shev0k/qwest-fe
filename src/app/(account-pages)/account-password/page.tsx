@@ -15,13 +15,29 @@ const AccountPass = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
 
+  const validatePassword = () => {
+    if (newPassword.length < 4) {
+      setError('Password must be at least 4 characters long.');
+      return false;
+    }
+    if (newPassword !== confirmPassword) {
+      setError("Passwords do not match.");
+      return false;
+    }
+    return true;
+  };
+
   const handlePasswordUpdate = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!user) {
       setError('No user data available.');
       return;
     }
-
+    
+    if (!validatePassword()) {
+      return;
+    }
+    
     if (newPassword !== confirmPassword) {
       setError("Passwords do not match.");
       return;

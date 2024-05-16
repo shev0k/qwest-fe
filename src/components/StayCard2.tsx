@@ -1,6 +1,7 @@
 import React, { FC } from "react";
 import GallerySlider from "@/components/GallerySlider";
 import { StayDataType } from "@/data/types";
+import { PathName } from "@/routers/types";  
 import StartRating from "@/components/StartRating";
 import BtnLikeIcon from "@/components/BtnLikeIcon";
 import Link from "next/link";
@@ -36,12 +37,13 @@ const StayCard2: FC<StayCard2Props> = ({
 
   const renderSliderGallery = () => (
     <div className="relative w-full">
-      <GallerySlider
-        uniqueID={`StayCard2_${id}`}
-        ratioClass="aspect-w-12 aspect-h-11"
-        galleryImageUrls={galleryImageUrls}
-        imageClass="rounded-lg"
-      />
+    <GallerySlider
+      uniqueID={`StayCard2_${id}`}
+      ratioClass="aspect-w-12 aspect-h-11"
+      galleryImageUrls={galleryImageUrls}
+      imageClass="rounded-lg"
+      href={`/listing-stay-detail/${id}` as PathName}  // Use type assertion here
+    />
       <BtnLikeIcon isLiked={like} className="absolute right-3 top-3 z-[1]" />
     </div>
   );

@@ -64,8 +64,15 @@ const Button: FC<ButtonProps> = ({
       <Link
         href={href}
         target={targetBlank ? "_blank" : undefined}
-        className={`${CLASSES} `}
-        onClick={onClick}
+        className={`${CLASSES} ${disabled ? 'pointer-events-none opacity-50' : ''}`}
+        onClick={(e) => {
+          if (disabled) {
+            e.preventDefault();
+            console.log("Navigation prevented due to disabled state.");
+            return;
+          }
+          onClick();
+        }}
         rel={targetBlank ? "noopener noreferrer" : undefined}
       >
         {children || `This is Link`}

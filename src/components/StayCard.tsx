@@ -10,6 +10,8 @@ import GallerySlider from "./GallerySlider";
 export interface StayCardProps {
   className?: string;
   data: StayDataType;
+  showLikeButton?: boolean; 
+  isLinkActive?: boolean;
   size?: "default" | "small";
 }
 
@@ -18,6 +20,8 @@ const StayCard: FC<StayCardProps> = ({
   size = "default",
   className = "",
   data,
+  showLikeButton = true, 
+  isLinkActive = true,
 }) => {
   const {
     galleryImageUrls,
@@ -39,10 +43,9 @@ const StayCard: FC<StayCardProps> = ({
           uniqueID={`StayCard_${id}`}
           ratioClass="aspect-w-4 aspect-h-3 "
           galleryImageUrls={galleryImageUrls}
-          href={'/listing-stay-detail'}
           galleryClass={size === "default" ? undefined : ""}
         />
-        <BtnLikeIcon isLiked={like} className="absolute right-3 top-3 z-[1]" />
+        {showLikeButton && <BtnLikeIcon isLiked={like} className="absolute right-3 top-3 z-[1]" />}
       </div>
     );
   };
@@ -117,7 +120,7 @@ const StayCard: FC<StayCardProps> = ({
       data-nc-id="StayCard"
     >
       {renderSliderGallery()}
-      <Link href={'/listing-stay-detail'}>{renderContent()}</Link>
+      {isLinkActive ? <Link href="/listing-stay-detail">{renderContent()}</Link> : renderContent()}
     </div>
   );
 };

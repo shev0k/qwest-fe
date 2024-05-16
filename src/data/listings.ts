@@ -42,7 +42,7 @@ const DEMO_STAY_LISTINGS = __stayListing.map((post, index): StayDataType => {
     kitchens: 0, // Assuming kitchens data is not available; adjust as needed
     checkInHours: "Not Specified", // Placeholder, adjust as needed
     checkOutHours: "Not Specified", // Placeholder, adjust as needed
-    specialRestrictions: "None", // Placeholder, adjust as needed
+    specialRestrictions: [], // Placeholder, adjust as needed
     accommodationDescription: "Not Specified", // Placeholder, adjust as needed
     weekdayPrice: post.weekdayPrice,
     weekendPrice: post.weekendPrice, // Assuming the same price for simplicity; adjust as needed

@@ -1,92 +1,109 @@
-import React, { FC } from "react";
+import React, { FC, useEffect, useState } from "react";
+import { useListingForm } from '@/contexts/ListingFormContext';
 import Checkbox from "@/shared/Checkbox";
+import { fetchAmenities } from '@/api/amenityServices';
+import { Amenity } from "@/data/types";
 
 export interface PageAddListing4Props {}
 
 const PageAddListing4: FC<PageAddListing4Props> = () => {
+  const { listingData, updateListingData, setFormValid } = useListingForm();
+  const [amenities, setAmenities] = useState<Amenity[]>([]);
+  const [selectedAmenities, setSelectedAmenities] = useState<Set<number>>(new Set());
+
+  const formatCategoryName = (category: string) => {
+    // Split the category string on underscores and format each part
+    return category.split('_')
+      .map(word => {
+        // Capitalize each word and handle special cases for '&' reinsertion
+        if (word === 'KITCHEN') {
+          return 'Kitchen & ';
+        } else if (word === 'DINING') {
+          return 'Dining';
+        } else if (word === 'LEISURE') {
+          return 'Leisure & ';
+        } else if (word === 'RECREATION') {
+          return 'Recreation';
+        } else if (word === 'ENTERTAINMENT') {
+          return 'Entertainment & ';
+        } else if (word === 'OTHERS') {
+          return 'Others';
+        } else {
+          return word.charAt(0) + word.slice(1).toLowerCase();
+        }
+      })
+      .join(' ')
+      .replace(/ & /g, ' &'); // Ensure single spaces around '&'
+  };
+  
+
+  useEffect(() => {
+    const loadAmenities = async () => {
+      const fetchedAmenities = await fetchAmenities();
+      setAmenities(fetchedAmenities);
+      if (listingData.amenityIds) {
+        setSelectedAmenities(new Set(listingData.amenityIds));
+      }
+    };
+    loadAmenities();
+  }, []);
+
+  useEffect(() => {
+    setFormValid(selectedAmenities.size > 0);
+  }, [selectedAmenities, setFormValid]);
+
+  useEffect(() => {
+    console.log("Listing Data Updated:", listingData); // Log the listingData whenever it changes
+  }, [listingData]);
+
+  const handleAmenityChange = (amenityId: number, isChecked: boolean) => {
+    setSelectedAmenities((prev) => {
+      const newSet = new Set(prev);
+      if (isChecked) {
+        newSet.add(amenityId);
+      } else {
+        newSet.delete(amenityId);
+      }
+      updateListingData({ 
+        ...listingData, 
+        amenityIds: Array.from(newSet),
+        amenityNames: Array.from(newSet).map(id => amenities.find(amenity => amenity.id === id)?.name || '')
+      });
+      return newSet;
+    });
+  };
+
+  const categories = amenities.reduce((acc: Record<string, Amenity[]>, amenity: Amenity) => {
+    const categoryName = formatCategoryName(amenity.category);
+    (acc[categoryName] = acc[categoryName] || []).push(amenity);
+    return acc;
+  }, {});
+
   return (
     <>
       <div>
-        <h2 className="text-2xl font-semibold">Amenities </h2>
+        <h2 className="text-2xl font-semibold">Amenities</h2>
         <span className="block mt-2 text-neutral-500 dark:text-neutral-400">
-        The Property&apos;s Amenities and Services
+          The Property&apos;s Amenities and Services
         </span>
       </div>
       <div className="w-14 border-b border-neutral-200 dark:border-neutral-700"></div>
-      {/* FORM */}
-      <div className="space-y-8">
-      {/* General Amenities */}
-      <div>
-        <label className="text-lg font-semibold">General Amenities</label>
-        <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          <Checkbox label="High-Speed WiFi" name="High-Speed WiFi" defaultChecked />
-          <Checkbox label="TV" name="TV" defaultChecked />
-          <Checkbox label="Air Conditioning" name="Air Conditioning" defaultChecked />
-          <Checkbox label="Heating" name="Heating" defaultChecked />
-          <Checkbox label="Private Entrance" name="Private Entrance" defaultChecked />
+      {Object.entries(categories).map(([category, amenities]) => (
+        <div key={category}>
+          <label className="text-lg font-semibold">{category}</label>
+          <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {amenities.map((amenity) => (
+              <Checkbox
+                key={amenity.id}
+                label={amenity.name}
+                name={amenity.name}
+                defaultChecked={selectedAmenities.has(amenity.id)}
+                onChange={(isChecked) => handleAmenityChange(amenity.id, isChecked)}
+              />
+            ))}
+          </div>
         </div>
-      </div>
-
-
-      {/* Room Features */}
-      <div>
-        <label className="text-lg font-semibold">Room Features</label>
-        <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          <Checkbox label="Bedding" name="Bedding" defaultChecked />
-          <Checkbox label="Work Desk" name="Work Desk" />
-          <Checkbox label="Wardrobe/Closet" name="Wardrobe/Closet" defaultChecked />
-          <Checkbox label="Accessible Room" name="Accessible Room" />
-        </div>
-      </div>
-
-      {/* Kitchen & Dining */}
-      <div>
-        <label className="text-lg font-semibold">Kitchen & Dining</label>
-        <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          <Checkbox label="Coffee & Tea Facilities" name="Coffee & Tea Facilities" defaultChecked />
-          <Checkbox label="Refrigerator & Mini Bar" name="Refrigerator & Mini Bar" defaultChecked />
-        </div>
-      </div>
-
-        {/* Bathroom Amenities */}
-        <div>
-        <label className="text-lg font-semibold">Bathroom Amenities</label>
-        <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          <Checkbox label="Shower & Bathtub" name="Shower & Bathtub" defaultChecked />
-          <Checkbox label="Essential Toiletries" name="Essential Toiletries" defaultChecked />
-        </div>
-      </div>
-
-      {/* Leisure & Recreation */}
-      <div>
-        <label className="text-lg font-semibold">Leisure & Recreation</label>
-        <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          <Checkbox label="Swimming Pool" name="Swimming Pool" defaultChecked />
-          <Checkbox label="Gym Access" name="Gym Access" />
-          <Checkbox label="Beach Access" name="Beach Access" />
-        </div>
-      </div>
-
-      {/* Additional Services */}
-      <div>
-        <label className="text-lg font-semibold">Additional Services</label>
-        <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          <Checkbox label="Concierge Service" name="Concierge Service" defaultChecked />
-          <Checkbox label="Luggage Assistance" name="Luggage Assistance" defaultChecked />
-          <Checkbox label="Baby Care Facilities" name="Baby Care Facilities" />
-        </div>
-      </div>
-
-      {/* Entertainment & Others */}
-      <div>
-      <label className="text-lg font-semibold">Entertainment & Others</label>
-        <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          <Checkbox label="Board Games & Entertainment" name ="Board Games & Entertainment" />
-          <Checkbox label="In-Room Coffee Maker" name="In-Room Coffee Maker" defaultChecked />
-        </div>
-      </div>
-
-      </div>
+      ))}
     </>
   );
 };
