@@ -1,6 +1,6 @@
 "use client";
 
-import React, { Fragment, useState, FC } from "react";
+import React, { Fragment, useState, useEffect, FC } from "react";
 import { Popover, Transition } from "@headlessui/react";
 import { CalendarIcon } from "@heroicons/react/24/outline";
 import DatePickerCustomHeaderTwoMonth from "@/components/DatePickerCustomHeaderTwoMonth";
@@ -12,22 +12,30 @@ import ClearDataButton from "../ClearDataButton";
 export interface StayDatesRangeInputProps {
   className?: string;
   fieldClassName?: string;
+  onChange?: (dates: [Date | null, Date | null]) => void;
+  value?: [Date | null, Date | null]; // Add this line
 }
 
 const StayDatesRangeInput: FC<StayDatesRangeInputProps> = ({
   className = "[ lg:nc-flex-2 ]",
   fieldClassName = "[ nc-hero-field-padding ]",
+  onChange,
+  value = [null, null], // Add this line
 }) => {
-  const [startDate, setStartDate] = useState<Date | null>(
-    new Date("2024/07/05")
-  );
-  const [endDate, setEndDate] = useState<Date | null>(new Date("2024/08/28"));
-  //
+  const [startDate, setStartDate] = useState<Date | null>(value[0]);
+  const [endDate, setEndDate] = useState<Date | null>(value[1]);
+
+  useEffect(() => {
+    setStartDate(value[0]);
+    setEndDate(value[1]);
+  }, [value]);
 
   const onChangeDate = (dates: [Date | null, Date | null]) => {
     const [start, end] = dates;
     setStartDate(start);
     setEndDate(end);
+
+    onChange && onChange(dates);
   };
 
   const renderInput = () => {

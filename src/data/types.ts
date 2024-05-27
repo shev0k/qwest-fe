@@ -18,8 +18,8 @@ export interface ListingGalleryImage {
 export interface TaxonomyType {
   id: string | number;
   name: string;
-  href: Route<string>;
-  count?: number;
+  href?: Route<string>;
+  count: number;
   thumbnail?: string;
   desc?: string;
   color?: TwMainColor | string;
@@ -40,6 +40,7 @@ export interface AuthorType {
   jobName: string;
   href: Route<string>;
   starRating?: number;
+  wishlistIds: number[];
 }
 
 export interface PostDataType {
@@ -107,6 +108,7 @@ export interface StayDataType {
   amenityNames: string[];
   availableDates: string[];
   like: boolean;
+  likedByAuthorIds: number[]; // Add this field
 }
 
 export interface Amenity {

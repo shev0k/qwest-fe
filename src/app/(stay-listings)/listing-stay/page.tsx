@@ -1,10 +1,12 @@
+"use client"
 import React, { FC } from "react";
-import SectionGridFilterCard from "../SectionGridFilterCard";
+import useScrollToTop from '@/hooks/useScrollToTop';
 
 export interface ListingStayPageProps {}
 
 const ListingStayPage: FC<ListingStayPageProps> = () => {
-  return <SectionGridFilterCard className="container pb-24 lg:pb-28" />;
+  useScrollToTop();
+  return <div></div>;
 };
 
 export default ListingStayPage;

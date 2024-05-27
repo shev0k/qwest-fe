@@ -12,10 +12,9 @@ import PrevBtn from "./PrevBtn";
 import NextBtn from "./NextBtn";
 import { variants } from "@/utils/animationVariants";
 import { useWindowSize } from "react-use";
-import { useSearchParams } from "next/navigation";
-import { fetchStayListingsWithQuery } from "@/api/stayListingsService";
+import fetchStayListings from "@/api/stayListingsService";
 
-export interface SectionSliderTypesOfStayProps {
+export interface SectionSliderCountriesProps {
   className?: string;
   itemClassName?: string;
   heading?: string;
@@ -23,59 +22,61 @@ export interface SectionSliderTypesOfStayProps {
   categoryCardType?: "card3" | "card4" | "card5";
   itemPerRow?: 4 | 5;
   sliderStyle?: "style1" | "style2";
-  onTypeOfStayClick?: (typeOfStay: string) => void;
+  onLocationClick?: (location: string) => void;
 }
 
 const DEMO_CATS: Omit<TaxonomyType, "count">[] = [
   {
     id: "1",
-    name: "Entire Place",
+    name: "Japan",
     taxonomy: "category",
-    href: "/listing-stay?typeOfStay=ENTIRE_PLACE",
     thumbnail:
-      "https://images.pexels.com/photos/2351649/pexels-photo-2351649.jpeg?auto=compress&cs=tinysrgb&dpr=3&h=750&w=1260",
-  },
-  {
-    id: "2",
-    name: "Private Room",
-    taxonomy: "category",
-    href: "/listing-stay?typeOfStay=PRIVATE_ROOM",
-    thumbnail:
-      "https://images.pexels.com/photos/2030119/pexels-photo-2030119.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=750&w=1260",
-  },
-  {
-    id: "3",
-    name: "Hotel Room",
-    taxonomy: "category",
-    href: "/listing-stay?typeOfStay=HOTEL_ROOM",
-    thumbnail:
-      "https://images.pexels.com/photos/277572/pexels-photo-277572.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=750&w=1260",
+      "https://images.pexels.com/photos/1654748/pexels-photo-1654748.jpeg?auto=compress&cs=tinysrgb&dpr=3&h=750&w=1260",
   },
   {
     id: "4",
-    name: "Shared Room",
+    name: "Netherlands",
     taxonomy: "category",
-    href: "/listing-stay?typeOfStay=SHARED_ROOM",
     thumbnail:
-      "https://images.pexels.com/photos/7128775/pexels-photo-7128775.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=750&w=1260",
+      "https://images.pexels.com/photos/2901480/pexels-photo-2901480.jpeg?auto=compress&cs=tinysrgb&dpr=3&h=750&w=1260",
+  },
+  {
+    id: "3",
+    name: "France",
+    taxonomy: "category",
+    thumbnail:
+      "https://images.pexels.com/photos/342113/pexels-photo-342113.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=750&w=1260",
+  },
+  {
+    id: "2",
+    name: "Romania",
+    taxonomy: "category",
+    thumbnail:
+      "https://images.pexels.com/photos/3570038/pexels-photo-3570038.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=750&w=1260",
+  },
+  {
+    id: "5",
+    name: "England",
+    taxonomy: "category",
+    thumbnail:
+      "https://images.pexels.com/photos/460672/pexels-photo-460672.jpeg?auto=compress&cs=tinysrgb&dpr=3&h=750&w=1260",
   },
 ];
 
-const SectionSliderTypesOfStay: FC<SectionSliderTypesOfStayProps> = ({
-  heading = "Types of Stays",
-  subHeading = "Explore stays based on type",
+const SectionSliderCountries: FC<SectionSliderCountriesProps> = ({
+  heading = "Discover New Places",
+  subHeading = "Recommended Destinations for You",
   className = "",
   itemClassName = "",
   itemPerRow = 4,
   categoryCardType = "card3",
   sliderStyle = "style1",
-  onTypeOfStayClick,
+  onLocationClick,
 }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [direction, setDirection] = useState(0);
   const [numberOfItems, setNumberOfItems] = useState(0);
   const [categories, setCategories] = useState<TaxonomyType[]>([]);
-  const searchParams = useSearchParams();
   const windowWidth = useWindowSize().width;
 
   useEffect(() => {
@@ -95,11 +96,10 @@ const SectionSliderTypesOfStay: FC<SectionSliderTypesOfStayProps> = ({
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Fetch all stays without any filters to get total count for each category
-        const stays = await fetchStayListingsWithQuery("");
+        const stays = await fetchStayListings();
         const categoriesWithCounts = DEMO_CATS.map((category) => ({
           ...category,
-          count: stays.filter((stay) => stay.rentalFormType === category.href?.split("=")[1]).length,
+          count: stays.filter((stay) => stay.country === category.name).length,
         }));
         setCategories(categoriesWithCounts);
       } catch (error) {
@@ -138,7 +138,7 @@ const SectionSliderTypesOfStay: FC<SectionSliderTypesOfStayProps> = ({
     const displayCount = count ?? "None";
 
     return (
-      <div onClick={() => onTypeOfStayClick?.(item.href?.split("=")[1] || "")} style={{ cursor: "pointer" }}>
+      <div onClick={() => onLocationClick?.(name)} style={{ cursor: "pointer" }}>
         {categoryCardType === "card3" && <CardCategory3 taxonomy={{ ...item, count: displayCount }} />}
         {categoryCardType === "card4" && <CardCategory4 taxonomy={{ ...item, count: displayCount }} />}
         {categoryCardType === "card5" && <CardCategory5 taxonomy={{ ...item, count: displayCount }} />}
@@ -149,7 +149,7 @@ const SectionSliderTypesOfStay: FC<SectionSliderTypesOfStayProps> = ({
   if (!numberOfItems) return null;
 
   return (
-    <div className={`nc-SectionSliderTypesOfStay ${className}`}>
+    <div className={`nc-SectionSliderCountries ${className}`}>
       <Heading desc={subHeading} isCenter={sliderStyle === "style2"}>
         {heading}
       </Heading>
@@ -210,4 +210,4 @@ const SectionSliderTypesOfStay: FC<SectionSliderTypesOfStayProps> = ({
   );
 };
 
-export default SectionSliderTypesOfStay;
+export default SectionSliderCountries;

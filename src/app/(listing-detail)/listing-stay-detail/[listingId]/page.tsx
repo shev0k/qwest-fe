@@ -106,7 +106,7 @@ const ListingStayDetailPage = () => {
         <div className="flex justify-between items-center">
           <Badge name={listing.propertyType} />
           <div className="flex items-center space-x-3">
-            <LikeSaveBtns />
+            <LikeSaveBtns listingId={listing.id} />
             {isUserAuthorized && (
               <>
                 <EditButton onClick={handleEditListing} />

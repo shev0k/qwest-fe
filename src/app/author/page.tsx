@@ -1,52 +1,77 @@
 "use client";
 
 import { Tab } from "@headlessui/react";
-import CommentListing from "@/components/CommentListing";
-import StartRating from "@/components/StartRating";
-import StayCard from "@/components/StayCard2";
-import {
-  DEMO_STAY_LISTINGS,
-} from "@/data/listings";
-import React, { FC, Fragment, useState } from "react";
+import React, { FC, Fragment, useEffect, useState } from "react";
+import { useRouter } from 'next/navigation';
 import Avatar from "@/shared/Avatar";
 import ButtonSecondary from "@/shared/ButtonSecondary";
 import SocialsList from "@/shared/SocialsList";
+import StartRating from "@/components/StartRating";
+import StayCard from "@/components/StayCard2";
+import { fetchStayListingsByAuthor } from "@/api/fetchStayListingsByAuthor";
+import { StayDataType } from "@/data/types";
+import { useAuth } from "@/contexts/authContext";
+import CommentListing from "@/components/CommentListing";
 
 export interface AuthorPageProps {}
 
 const AuthorPage: FC<AuthorPageProps> = ({}) => {
-  let [categories] = useState(["Stays"]);
+  const [categories] = useState(["Stays"]);
+  const [stayListings, setStayListings] = useState<StayDataType[]>([]);
+  const { user, isAuthenticated, loginUser } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    const storedUserData = sessionStorage.getItem('user');
+    const storedToken = sessionStorage.getItem('token');
+
+    if (storedUserData && storedToken) {
+      const userData = JSON.parse(storedUserData);
+      // Simulate login to ensure user state is set
+      loginUser(userData);
+    } else {
+      router.push('/login');
+    }
+  }, [router]);
+
+  useEffect(() => {
+    if (user) {
+      fetchStayListingsByAuthor(user.id)
+        .then((data) => setStayListings(data))
+        .catch((error) => console.error("Failed to fetch stay listings:", error));
+    }
+  }, [user]);
 
   const renderSidebar = () => {
+    if (!user) return null;
+
+    const userName = user.firstName || user.lastName ? `${user.firstName || ""} ${user.lastName || ""}`.trim() : "Name not set";
+
     return (
-      <div className=" w-full flex flex-col items-center text-center sm:rounded-2xl sm:border border-neutral-200 dark:border-neutral-700 space-y-6 sm:space-y-7 px-0 sm:p-6 xl:p-8">
+      <div className="w-full flex flex-col items-center text-center sm:rounded-2xl sm:border border-neutral-200 dark:border-neutral-700 space-y-6 sm:space-y-7 px-0 sm:p-6 xl:p-8">
         <Avatar
           hasChecked
           hasCheckedClass="w-6 h-6 -top-0.5 right-2"
           sizeClass="w-28 h-28"
+          imgUrl={user.avatar}
         />
 
-        {/* ---- */}
         <div className="space-y-3 text-center flex flex-col items-center">
-          <h2 className="text-3xl font-semibold">Claudiu Gabriel</h2>
+          <h2 className="text-3xl font-semibold">{userName}</h2>
           <StartRating className="!text-base" />
         </div>
-
-        {/* ---- */}
+        {/* rating={user.starRating || 0} */}
         <p className="text-neutral-500 dark:text-neutral-400">
-        Offering comfortable lodging to ensure you have a cozy place to stay, far from the discomforts of the outdoors.
+          {user.description || "Description not set"}
         </p>
 
-        {/* ---- */}
         <SocialsList
           className="!space-x-3"
           itemClass="flex items-center justify-center w-9 h-9 rounded-full bg-neutral-100 dark:bg-neutral-800 text-xl"
         />
 
-        {/* ---- */}
         <div className="border-b border-neutral-200 dark:border-neutral-700 w-14"></div>
 
-        {/* ---- */}
         <div className="space-y-4">
           <div className="flex items-center space-x-4">
             <svg
@@ -64,7 +89,7 @@ const AuthorPage: FC<AuthorPageProps> = ({}) => {
               />
             </svg>
             <span className="text-neutral-6000 dark:text-neutral-300">
-              Netherlands
+              {user.country || "Country not set"}
             </span>
           </div>
 
@@ -96,46 +121,52 @@ const AuthorPage: FC<AuthorPageProps> = ({}) => {
     return (
       <div className="listingSection__wrap">
         <div>
-          <h2 className="text-2xl font-semibold">Claudiu Gabriel&apos;s Listings</h2>
+          <h2 className="text-2xl font-semibold">{`${user?.firstName || "Author"}'s Listings`}</h2>
           <span className="block mt-2 text-neutral-500 dark:text-neutral-400">
-            Explore the collection of listings by Claudiu Gabriel
+            {stayListings.length > 0 ? `Explore the collection of listings by ${user?.firstName || "the author"}` : "No listings available"}
           </span>
         </div>
         <div className="w-14 border-b border-neutral-200 dark:border-neutral-700"></div>
 
-        <div>
-          <Tab.Group>
-            <Tab.List className="flex space-x-1 overflow-x-auto">
-              {categories.map((item) => (
-                <Tab key={item} as={Fragment}>
-                  {({ selected }) => (
-                    <button
-                      className={`flex-shrink-0 block !leading-none font-medium px-5 py-2.5 text-sm sm:text-base sm:px-6 sm:py-3 capitalize rounded-full focus:outline-none ${
-                        selected
-                          ? "bg-primary-6000 hover:bg-primary-700 text-neutral-50 "
-                          : "text-neutral-500 dark:text-neutral-400 dark:hover:text-neutral-100 hover:text-neutral-900 hover:bg-neutral-100 dark:hover:bg-neutral-800"
-                      } `}
-                    >
-                      {item}
-                    </button>
-                  )}
-                </Tab>
-              ))}
-            </Tab.List>
-            <Tab.Panels>
-              <Tab.Panel className="">
-                <div className="mt-8 grid grid-cols-1 gap-6 md:gap-7 sm:grid-cols-2">
-                  {DEMO_STAY_LISTINGS.filter((_, i) => i < 4).map((stay) => (
-                    <StayCard key={stay.id} data={stay} />
-                  ))}
-                </div>
-                <div className="flex mt-11 justify-center items-center">
-                  <ButtonSecondary>Show More</ButtonSecondary>
-                </div>
-              </Tab.Panel>
-            </Tab.Panels>
-          </Tab.Group>
-        </div>
+        {stayListings.length > 0 ? (
+          <div>
+            <Tab.Group>
+              <Tab.List className="flex space-x-1 overflow-x-auto">
+                {categories.map((item) => (
+                  <Tab key={item} as={Fragment}>
+                    {({ selected }) => (
+                      <button
+                        className={`flex-shrink-0 block !leading-none font-medium px-5 py-2.5 text-sm sm:text-base sm:px-6 sm:py-3 capitalize rounded-full focus:outline-none ${
+                          selected
+                            ? "bg-primary-6000 hover:bg-primary-700 text-neutral-50 "
+                            : "text-neutral-500 dark:text-neutral-400 dark:hover:text-neutral-100 hover:text-neutral-900 hover:bg-neutral-100 dark:hover:bg-neutral-800"
+                        } `}
+                      >
+                        {item}
+                      </button>
+                    )}
+                  </Tab>
+                ))}
+              </Tab.List>
+              <Tab.Panels>
+                <Tab.Panel className="">
+                  <div className="mt-8 grid grid-cols-1 gap-6 md:gap-7 sm:grid-cols-2">
+                    {stayListings.map((stay) => (
+                      <StayCard key={stay.id} data={stay} />
+                    ))}
+                  </div>
+                  <div className="flex mt-11 justify-center items-center">
+                    <ButtonSecondary>Show More</ButtonSecondary>
+                  </div>
+                </Tab.Panel>
+              </Tab.Panels>
+            </Tab.Group>
+          </div>
+        ) : (
+          <div className="mt-8 text-center text-neutral-500 dark:text-neutral-400">
+            This author currently has no listings available
+          </div>
+        )}
       </div>
     );
   };
@@ -143,11 +174,8 @@ const AuthorPage: FC<AuthorPageProps> = ({}) => {
   const renderSection2 = () => {
     return (
       <div className="listingSection__wrap">
-        {/* HEADING */}
         <h2 className="text-2xl font-semibold">Reviews (23 reviews)</h2>
         <div className="w-14 border-b border-neutral-200 dark:border-neutral-700"></div>
-
-        {/* comment */}
         <div className="divide-y divide-neutral-100 dark:divide-neutral-800">
           <CommentListing hasListingTitle className="pb-8" />
           <CommentListing hasListingTitle className="py-8" />
@@ -162,7 +190,7 @@ const AuthorPage: FC<AuthorPageProps> = ({}) => {
   };
 
   return (
-    <div className={`nc-AuthorPage `}>
+    <div className={`nc-AuthorPage`}>
       <main className="container mt-12 mb-24 lg:mb-32 flex flex-col lg:flex-row">
         <div className="block flex-grow mb-24 lg:mb-0">
           <div className="lg:sticky lg:top-24">{renderSidebar()}</div>

@@ -1,5 +1,5 @@
 'use client'
-import React, { useState, FC } from "react";
+import React, { useState, FC, useEffect } from "react";
 import { useRouter } from 'next/navigation';
 import Link from "next/link";
 import { login } from "@/api/authService";
@@ -14,8 +14,14 @@ const PageLogin: FC<PageLoginProps> = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const { loginUser } = useAuth();
+  const { loginUser, isAuthenticated } = useAuth();
   const router = useRouter();
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.push('/');
+    }
+  }, [isAuthenticated, router]);
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -28,6 +34,7 @@ const PageLogin: FC<PageLoginProps> = () => {
           username: response.username || email.split('@')[0],
           avatar: response.avatar || "",
           country: response.country || "",
+          wishlistIds: response.wishlistIds || [],
           token: response.jwt
         });
         router.push('/');
@@ -40,8 +47,6 @@ const PageLogin: FC<PageLoginProps> = () => {
     }
   };
 
-
-  
   return (
     <div className={`nc-PageLogin`}>
       <div className="container mb-24 lg:mb-32">

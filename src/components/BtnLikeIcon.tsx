@@ -1,19 +1,49 @@
 "use client";
 
-import React, { FC, useState } from "react";
+import React, { FC, useState, useEffect } from "react";
+import { useAuth } from "@/contexts/authContext";
 
 export interface BtnLikeIconProps {
   className?: string;
   colorClass?: string;
   isLiked?: boolean;
+  listingId: number;
 }
 
 const BtnLikeIcon: FC<BtnLikeIconProps> = ({
   className = "",
   colorClass = "text-white bg-black bg-opacity-30 hover:bg-opacity-50",
   isLiked = false,
+  listingId,
 }) => {
+  const { user, handleAddToWishlist, handleRemoveFromWishlist, isAuthenticated } = useAuth();
   const [likedState, setLikedState] = useState(isLiked);
+
+  useEffect(() => {
+    if (user && user.wishlistIds) {
+      setLikedState(user.wishlistIds.includes(listingId));
+    } else {
+      setLikedState(isLiked);
+    }
+  }, [isLiked, user, listingId]);
+
+  const handleWishlistClick = async () => {
+    if (isAuthenticated) {
+      try {
+        if (likedState) {
+          await handleRemoveFromWishlist(listingId);
+          setLikedState(false);
+        } else {
+          await handleAddToWishlist(listingId);
+          setLikedState(true);
+        }
+      } catch (error) {
+        console.error("Error updating wishlist:", error);
+      }
+    } else {
+      alert("You need to be logged in to add to wishlist");
+    }
+  };
 
   return (
     <div
@@ -22,7 +52,7 @@ const BtnLikeIcon: FC<BtnLikeIconProps> = ({
       }  ${colorClass} ${className}`}
       data-nc-id="BtnLikeIcon"
       title="Save"
-      onClick={() => setLikedState(!likedState)}
+      onClick={handleWishlistClick}
     >
       <svg
         xmlns="http://www.w3.org/2000/svg"

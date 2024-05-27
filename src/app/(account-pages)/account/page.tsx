@@ -6,9 +6,10 @@ import Avatar from "@/shared/Avatar";
 import ButtonPrimary from "@/shared/ButtonPrimary";
 import Input from "@/shared/Input";
 import Textarea from "@/shared/Textarea";
+import { useRouter } from 'next/navigation';
 
 const AccountPage = () => {
-  const { user, updateUserDetails, updateUserAvatar } = useAuth();
+  const { user, updateUserDetails, updateUserAvatar, isAuthenticated, loginUser } = useAuth();
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -21,9 +22,26 @@ const AccountPage = () => {
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const router = useRouter();
 
   useEffect(() => {
-    if (user) {
+    const storedUserData = sessionStorage.getItem('user');
+    const storedToken = sessionStorage.getItem('token');
+
+    if (storedUserData && storedToken) {
+      const userData = JSON.parse(storedUserData);
+      loginUser(userData);
+    } else {
+      router.push('/login');
+    }
+  }, [router]);
+
+  useEffect(() => {
+    const storedFormData = sessionStorage.getItem('formData');
+    if (storedFormData) {
+      setFormData(JSON.parse(storedFormData));
+    } else if (user) {
       setFormData({
         firstName: user.firstName || '',
         lastName: user.lastName || '',
@@ -33,16 +51,42 @@ const AccountPage = () => {
         phoneNumber: user.phoneNumber || '',
         description: user.description || '',
       });
-      setAvatarPreview(null);
     }
+    setAvatarPreview(null);
+
+    const handleBeforeUnload = () => {
+      sessionStorage.removeItem('formData');
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      sessionStorage.removeItem('formData');
+    };
   }, [user]);
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files.length > 0) {
       const file = event.target.files[0];
       if (/^image\/(jpeg|png|gif|jpg)$/.test(file.type)) {
         setAvatarFile(file);
         setAvatarPreview(URL.createObjectURL(file));
+
+        // Persist form data before uploading avatar
+        sessionStorage.setItem('formData', JSON.stringify(formData));
+
+        // Trigger avatar upload
+        try {
+          await updateUserAvatar(user!.id, file);
+          setSuccess('Avatar updated successfully.');
+          setAvatarFile(null);
+          // Reload to get the updated avatar
+          window.location.reload();
+        } catch (error) {
+          console.error("Avatar update error:", error);
+          setError("Failed to update avatar. Please try again.");
+        }
       } else {
         setAvatarFile(null);
         setAvatarPreview(null);
@@ -68,14 +112,19 @@ const AccountPage = () => {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData(prev => {
+      const newFormData = { ...prev, [name]: value };
+      sessionStorage.setItem('formData', JSON.stringify(newFormData));
+      return newFormData;
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
+    setSuccess("");
 
-    if (!user || !user.token) {
+    if (!user) {
       setError('User data is incomplete. Unable to update profile.');
       return;
     }
@@ -85,15 +134,11 @@ const AccountPage = () => {
     }
 
     try {
-      if (Object.values(formData).some(value => value)) {
-        await updateUserDetails({ ...user, ...formData });
-      }
+      // Update user details
+      await updateUserDetails({ ...user, ...formData });
 
-      if (avatarFile) {
-        await updateUserAvatar(user.id, avatarFile, user.token);
-      }
-
-      alert('Profile updated successfully.');
+      setSuccess('Profile updated successfully.');
+      sessionStorage.removeItem('formData'); // Clear session storage after successful update
     } catch (error) {
       console.error("Update error:", error);
       setError("Failed to update profile. Please try again.");
@@ -160,6 +205,7 @@ const AccountPage = () => {
             <Textarea id="description" name="description" className="mt-1.5" value={formData.description} onChange={handleChange} />
           </div>
           {error && <div className="text-red-500 mt-4">{error}</div>}
+          {success && <div className="text-green-500 mt-4">{success}</div>}
           <div className="pt-2">
             <ButtonPrimary>Save Changes</ButtonPrimary>
           </div>

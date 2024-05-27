@@ -1,19 +1,33 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/authContext";
 import Label from "@/components/Label";
 import ButtonPrimary from "@/shared/ButtonPrimary";
 import Input from "@/shared/Input";
+import { useRouter } from 'next/navigation';
 
 interface PasswordData {
   password: string;
 }
 
 const AccountPass = () => {
-  const { user, updateUserDetails } = useAuth();
+  const { user, updateUserDetails, loginUser, isAuthenticated } = useAuth();
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
+  const router = useRouter();
+
+  useEffect(() => {
+    const storedUserData = sessionStorage.getItem('user');
+    const storedToken = sessionStorage.getItem('token');
+
+    if (storedUserData && storedToken) {
+      const userData = JSON.parse(storedUserData);
+      loginUser(userData);
+    } else {
+      router.push('/login');
+    }
+  }, [router]);
 
   const validatePassword = () => {
     if (newPassword.length < 4) {

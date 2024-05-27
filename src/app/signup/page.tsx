@@ -1,5 +1,5 @@
 'use client'
-import React, { useState, FC } from "react";
+import React, { useState, FC, useEffect } from "react";
 import { useRouter } from 'next/navigation';
 import Link from "next/link";
 import { signUp } from "@/api/authService";
@@ -19,8 +19,14 @@ const PageSignUp: FC<PageSignUpProps> = () => {
     country: "" 
   });
   const [error, setError] = useState<string | null>(null);
-  const { loginUser } = useAuth();
+  const { loginUser, isAuthenticated } = useAuth();
   const router = useRouter();
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.push('/');
+    }
+  }, [isAuthenticated, router]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -44,6 +50,7 @@ const PageSignUp: FC<PageSignUpProps> = () => {
         username: response.username || formData.email.split('@')[0],
         avatar: response.avatar || "",
         country: response.country || "",
+        wishlistIds: response.wishlistIds || [],
         token: response.jwt
       });
       router.push('/');  // Redirect to home or dashboard
@@ -51,7 +58,7 @@ const PageSignUp: FC<PageSignUpProps> = () => {
       setError("An unexpected error occurred during sign up. Please try again.");
     }
   };
-  
+
   return (
     <div className={`nc-PageSignUp  `}>
       <div className="container mb-24 lg:mb-32">
