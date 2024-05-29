@@ -1,8 +1,9 @@
+// src/pages/author/[authorId].tsx
 "use client";
 
 import { Tab } from "@headlessui/react";
 import React, { FC, Fragment, useEffect, useState } from "react";
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import Avatar from "@/shared/Avatar";
 import ButtonSecondary from "@/shared/ButtonSecondary";
 import SocialsList from "@/shared/SocialsList";
@@ -10,9 +11,11 @@ import StartRating from "@/components/StartRating";
 import StayCard from "@/components/StayCard2";
 import { fetchStayListingsByAuthor } from "@/api/fetchStayListingsByAuthor";
 import { fetchReviewsForAuthorStays } from "@/api/reviewServices";
-import { StayDataType, ReviewDTO } from "@/data/types";
-import { useAuth } from "@/contexts/authContext";
+import fetchAuthorById from "@/api/fetchAuthorById";
+import { approveHostRole, rejectHostRole, demoteToTraveler } from "@/api/author";
+import { StayDataType, ReviewDTO, AuthorType } from "@/data/types";
 import CommentListing from "@/components/CommentListing";
+import { useAuth } from "@/contexts/authContext";
 
 export interface AuthorPageProps {}
 
@@ -22,38 +25,33 @@ const AuthorPage: FC<AuthorPageProps> = ({}) => {
   const [reviews, setReviews] = useState<ReviewDTO[]>([]);
   const [averageRating, setAverageRating] = useState(0);
   const [reviewCount, setReviewCount] = useState(0);
-  const { user, isAuthenticated, loginUser } = useAuth();
+  const [author, setAuthor] = useState<AuthorType | null>(null);
   const router = useRouter();
+  const { authorId } = useParams();
+  const { user, isAuthenticated } = useAuth();
   const [showAllReviews, setShowAllReviews] = useState(false);
   const [showAllListings, setShowAllListings] = useState(false);
 
   useEffect(() => {
-    const storedUserData = sessionStorage.getItem('user');
-    const storedToken = sessionStorage.getItem('token');
+    if (authorId) {
+      fetchAuthorById(Number(authorId))
+        .then((data) => {
+          setAuthor(data);
+        })
+        .catch((error) => console.error("Failed to fetch author:", error));
 
-    if (storedUserData && storedToken) {
-      const userData = JSON.parse(storedUserData);
-      // Simulate login to ensure user state is set
-      loginUser(userData);
-    } else {
-      router.push('/login');
-    }
-  }, [router]);
-
-  useEffect(() => {
-    if (user) {
-      fetchStayListingsByAuthor(user.id)
+      fetchStayListingsByAuthor(Number(authorId))
         .then((data) => setStayListings(data))
         .catch((error) => console.error("Failed to fetch stay listings:", error));
   
-      fetchReviewsForAuthorStays(user.id)
+      fetchReviewsForAuthorStays(Number(authorId))
         .then((data) => {
           setReviews(data);
           calculateRatingAndReviewCount(data);
         })
         .catch((error) => console.error("Failed to fetch reviews:", error));
     }
-  }, [user]);
+  }, [authorId]);
 
   const calculateRatingAndReviewCount = (reviews: ReviewDTO[]) => {
     const totalReviews = reviews.length;
@@ -72,11 +70,52 @@ const AuthorPage: FC<AuthorPageProps> = ({}) => {
     setShowAllListings(!showAllListings);
   };
 
+  const handleApproveHost = async () => {
+    if (author) {
+      await approveHostRole(author.id);
+      setAuthor({ ...author, role: 'HOST' });
+    }
+  };
+
+  const handleRejectHost = async () => {
+    if (author) {
+      await rejectHostRole(author.id);
+      setAuthor({ ...author, role: 'TRAVELER' });
+    }
+  };
+
+  const handleDemoteToTraveler = async () => {
+    if (author) {
+      await demoteToTraveler(author.id);
+      setAuthor({ ...author, role: 'TRAVELER' });
+    }
+  };
+
+  const renderButtonsForFounder = () => {
+    console.log("Current User Role:", user?.role); // Debug: log user role
+    console.log("Author Role:", author?.role); // Debug: log author role
+
+    if (!author || user?.role !== 'FOUNDER') return null;
+
+    return (
+      <div className="flex space-x-4 mt-4">
+        {author.role === 'PENDING_HOST' && (
+          <>
+            <ButtonSecondary onClick={handleApproveHost}>Approve Host</ButtonSecondary>
+            <ButtonSecondary onClick={handleRejectHost}>Reject Host</ButtonSecondary>
+          </>
+        )}
+        {author.role === 'HOST' && (
+          <ButtonSecondary onClick={handleDemoteToTraveler}>Demote to Traveler</ButtonSecondary>
+        )}
+      </div>
+    );
+  };
 
   const renderSidebar = () => {
-    if (!user) return null;
+    if (!author) return null;
 
-    const userName = user.firstName || user.lastName ? `${user.firstName || ""} ${user.lastName || ""}`.trim() : "Name not set";
+    const userName = author.firstName || author.lastName ? `${author.firstName || ""} ${author.lastName || ""}`.trim() : "Name not set";
 
     return (
       <div className="w-full flex flex-col items-center text-center sm:rounded-2xl sm:border border-neutral-200 dark:border-neutral-700 space-y-6 sm:space-y-7 px-0 sm:p-6 xl:p-8">
@@ -84,16 +123,15 @@ const AuthorPage: FC<AuthorPageProps> = ({}) => {
           hasChecked
           hasCheckedClass="w-6 h-6 -top-0.5 right-2"
           sizeClass="w-28 h-28"
-          imgUrl={user.avatar}
+          imgUrl={author.avatar}
         />
 
         <div className="space-y-3 text-center flex flex-col items-center">
           <h2 className="text-3xl font-semibold">{userName}</h2>
           <StartRating className="!text-base" point={averageRating} reviewCount={reviewCount} />
         </div>
-        {/* rating={user.starRating || 0} */}
         <p className="text-neutral-500 dark:text-neutral-400">
-          {user.description || "Description not set"}
+          {author.description || "Description not set"}
         </p>
 
         <SocialsList
@@ -120,7 +158,7 @@ const AuthorPage: FC<AuthorPageProps> = ({}) => {
               />
             </svg>
             <span className="text-neutral-6000 dark:text-neutral-300">
-              {user.country || "Country not set"}
+              {author.country || "Country not set"}
             </span>
           </div>
 
@@ -144,6 +182,7 @@ const AuthorPage: FC<AuthorPageProps> = ({}) => {
             </span>
           </div>
         </div>
+        {renderButtonsForFounder()}
       </div>
     );
   };
@@ -154,9 +193,9 @@ const AuthorPage: FC<AuthorPageProps> = ({}) => {
     return (
       <div className="listingSection__wrap">
         <div>
-          <h2 className="text-2xl font-semibold">{`${user?.firstName || "Author"}'s Listings`}</h2>
+          <h2 className="text-2xl font-semibold">{`${author?.firstName || "Author"}'s Listings`}</h2>
           <span className="block mt-2 text-neutral-500 dark:text-neutral-400">
-            {stayListings.length > 0 ? `Explore the collection of listings by ${user?.firstName || "the author"}` : "No listings available"}
+            {stayListings.length > 0 ? `Explore the collection of listings by ${author?.firstName || "the author"}` : "No listings available"}
           </span>
         </div>
         <div className="w-14 border-b border-neutral-200 dark:border-neutral-700"></div>

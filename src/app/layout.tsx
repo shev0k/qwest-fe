@@ -9,6 +9,7 @@ import "rc-slider/assets/index.css";
 import Footer from "@/components/Footer";
 import FooterNav from "@/components/FooterNav";
 import { AuthProvider } from '@/contexts/authContext';
+import { WebSocketProvider } from '@/contexts/WebSocketContext';
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -25,15 +26,17 @@ export default function RootLayout({
 }) {
   return (
     <AuthProvider>
-    <html lang="en" className={poppins.className}>
-      <body className="bg-white text-base dark:bg-neutral-900 text-neutral-900 dark:text-neutral-200">
-        <ClientCommons />
-        <SiteHeader />
-        {children}
-        <FooterNav />
-        <Footer />
-      </body>
-    </html>
+      <WebSocketProvider>
+      <html lang="en" className={poppins.className}>
+          <body className="bg-white text-base dark:bg-neutral-900 text-neutral-900 dark:text-neutral-200">
+            <ClientCommons />
+            <SiteHeader />
+            {children}
+            <FooterNav />
+            <Footer />
+          </body>
+        </html>
+      </WebSocketProvider>
     </AuthProvider>
   );
 }

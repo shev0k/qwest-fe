@@ -71,7 +71,9 @@ const SectionHeroArchivePage: FC<SectionHeroArchivePageProps> = ({
             ) : (
               <>
                 <i className="text-2xl las la-home"></i>
-                <span className="ml-2.5">{numListings} Properties</span>
+                <span className="ml-2.5">
+                  {numListings === 0 ? "No Stays" : `${numListings} ${numListings === 1 ? "Stay" : "Stays"}`}
+                </span>
               </>
             )}
           </div>

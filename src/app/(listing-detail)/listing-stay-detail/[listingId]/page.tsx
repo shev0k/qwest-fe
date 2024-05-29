@@ -17,28 +17,66 @@ import DeleteButton from "@/components/DeleteButton";
 import StayDatesRangeInput from "../StayDatesRangeInput";
 import GuestsInput from "../GuestsInput";
 import SectionDateRange from "../../SectionDateRange";
-import { AuthorType, StayDataType } from '@/data/types';
+import { AuthorType, StayDataType, ReviewDTO } from '@/data/types';
 import fetchStayListingById from '@/api/fetchStayListingById';
 import fetchAuthorById from "@/api/fetchAuthorById";
 import { deleteStayListing } from "@/api/stayServices";
 import { useAuth } from '@/contexts/authContext';
 import type { Route } from "@/routers/types";
+import { fetchReviewsByStayListing, createReview, updateReview, deleteReview, fetchReviewsForAuthorStays } from '@/api/reviewServices';
+import CommentListing from "@/components/CommentListing";
+import ButtonCircle from "@/shared/ButtonCircle";
+import Input from "@/shared/Input";
+import FiveStartIconForRate from "@/components/FiveStartIconForRate";
+import ReviewList from "@/components/ReviewList";
+import { format } from 'date-fns';
 
-const ListingStayDetailPage = () => {
+const ListingStayDetailPage: React.FC = () => {
   const pathname = usePathname();
   const router = useRouter();
   const { user } = useAuth();
   const [listing, setListing] = useState<StayDataType | null>(null);
   const [author, setAuthor] = useState<AuthorType | null>(null);
+  const [reviews, setReviews] = useState<ReviewDTO[]>([]);
+  const [newReview, setNewReview] = useState<string>('');
+  const [rating, setRating] = useState<number>(5);
   const [unavailableDates, setUnavailableDates] = useState<Date[]>([]);
   const [isOpenModalAmenities, setIsOpenModalAmenities] = useState(false);
   const [isOpenModalImageGallery, setIsOpenModalImageGallery] = useState(false);
+  const [showAllReviews, setShowAllReviews] = useState(false);
+  const [averageRating, setAverageRating] = useState(0);
+  const [reviewCount, setReviewCount] = useState(0);
+  const [authorAverageRating, setAuthorAverageRating] = useState(0);
+  const [authorReviewCount, setAuthorReviewCount] = useState(0);
+  
+
+
 
   const googleMapsEmbedUrl = useMemo(() => {
     if (!listing) return ""; 
     const addressQuery = encodeURIComponent(`${listing.street}, ${listing.postalCode}, ${listing.city}, ${listing.country}`);
     return `https://www.google.com/maps/embed/v1/place?key=AIzaSyAyXWlzjN4b3X9kQllFwTeJwFVa1Eqhb-8&q=${addressQuery}`;
   }, [listing]);
+
+  const handleToggleShowAllReviews = () => {
+    setShowAllReviews(!showAllReviews);
+  };
+
+  const calculateRatingAndReviewCount = (reviews: ReviewDTO[]) => {
+    const totalReviews = reviews.length;
+    const totalRating = reviews.reduce((sum, review) => sum + review.rating, 0);
+    const averageRating = totalReviews > 0 ? totalRating / totalReviews : 0;
+  
+    setAverageRating(parseFloat(averageRating.toFixed(1)));
+    setReviewCount(totalReviews);
+  };
+
+  const prioritizeUserReviews = (reviews: ReviewDTO[], userId: number) => {
+    const userReviews = reviews.filter(review => review.authorId === userId);
+    const otherReviews = reviews.filter(review => review.authorId !== userId);
+    return [...userReviews, ...otherReviews];
+  };
+  
 
   useEffect(() => {
     const id = pathname.split('/').pop();
@@ -52,10 +90,104 @@ const ListingStayDetailPage = () => {
         })
         .then(authorData => {
           setAuthor(authorData);
+          return Promise.all([
+            fetchReviewsByStayListing(Number(id)),
+            fetchReviewsForAuthorStays(authorData.id)
+          ]);
+        })
+        .then(([reviewData, authorReviews]) => {
+          if (user) {
+            reviewData = prioritizeUserReviews(reviewData, user.id);
+          }
+          setReviews(reviewData);
+          calculateRatingAndReviewCount(reviewData);
+          const totalAuthorReviews = authorReviews.length;
+          const totalAuthorRating = authorReviews.reduce((sum, review) => sum + review.rating, 0);
+          const authorAverageRating = totalAuthorReviews > 0 ? totalAuthorRating / totalAuthorReviews : 0;
+  
+          setAuthorAverageRating(parseFloat(authorAverageRating.toFixed(1)));
+          setAuthorReviewCount(totalAuthorReviews);
         })
         .catch(error => console.error(error));
     }
-  }, [pathname]);
+  }, [pathname, user]);
+  
+
+
+  const fetchReviewDetails = async (review: ReviewDTO): Promise<ReviewDTO> => {
+    try {
+      const [author, stay] = await Promise.all([
+        fetchAuthorById(review.authorId),
+        fetchStayListingById(review.stayListingId.toString())
+      ]);
+
+      return {
+        ...review,
+        authorName: author.username,
+        authorAvatar: typeof author.avatar === 'string' ? author.avatar : author.avatar.src,
+        stayTitle: stay.title
+      };
+    } catch (error) {
+      console.error('Failed to fetch review details:', error);
+      throw error;
+    }
+  };
+
+  const handleAddReview = async () => {
+    if (user && listing) {
+      const newReviewData: ReviewDTO = {
+        rating,
+        comment: newReview,
+        stayListingId: listing.id,
+        authorId: user.id,
+        authorName: user.username || user.firstName || '',
+        createdAt: new Date().toISOString().split('T')[0],
+        authorAvatar: user.avatar || '',
+      };
+      try {
+        const savedReview = await createReview(newReviewData);
+        const updatedReview = await fetchReviewDetails(savedReview);
+        setReviews(prevReviews => prioritizeUserReviews([updatedReview, ...prevReviews], user.id));
+        setNewReview('');
+      } catch (error) {
+        console.error('Failed to create review:', error);
+      }
+    } else {
+      console.error('User or listing information is missing.');
+    }
+  };
+  
+
+  const handleEditReview = async (reviewId: number, updatedComment: string) => {
+    try {
+      const originalReview = reviews.find(r => r.id === reviewId);
+      if (!originalReview) return;
+
+      const updatedReviewData: ReviewDTO = {
+        ...originalReview,
+        comment: updatedComment,
+        createdAt: new Date().toISOString().split('T')[0],
+        authorId: originalReview.authorId,
+        authorAvatar: originalReview.authorAvatar || '',
+      };
+
+      const updatedReview = await updateReview(reviewId, updatedReviewData);
+      const updatedReviewWithDetails = await fetchReviewDetails(updatedReview);
+      setReviews(reviews => reviews.map(r => r.id === reviewId ? updatedReviewWithDetails : r));
+    } catch (error) {
+      console.error('Failed to update review:', error);
+    }
+  };
+
+  const handleDeleteReview = async (reviewId: number) => {
+    try {
+      await deleteReview(reviewId);
+      setReviews(reviews => reviews.filter(r => r.id !== reviewId));
+    } catch (error) {
+      console.error('Failed to delete review:', error);
+    }
+  };
+
 
   const handleOpenModalImageGallery = () => {
     const params = new URLSearchParams(window.location.search);
@@ -96,6 +228,10 @@ const ListingStayDetailPage = () => {
 
   const isUserAuthorized = user && (user.id === listing?.authorId || user.role === "FOUNDER");
 
+  const isUserReview = (review: ReviewDTO) => {
+    return user ? (user.id === review.authorId || user.id === listing?.authorId || user.role === "FOUNDER") : false;
+  };
+
   if (!listing) return <div>Loading...</div>;
 
   const address = `${listing.street} ${listing.postalCode}, ${listing.city}, ${listing.country}`;
@@ -119,7 +255,7 @@ const ListingStayDetailPage = () => {
           {listing.title}
         </h2>
         <div className="flex items-center space-x-4">
-          <StartRating />
+          <StartRating point={averageRating} reviewCount={reviewCount} />
           <span>·</span>
           <span>
             <i className="las la-map-marker-alt"></i>
@@ -181,6 +317,7 @@ const ListingStayDetailPage = () => {
       </div>
     );
   };
+  
   
 
 
@@ -411,6 +548,8 @@ const ListingStayDetailPage = () => {
   };
 
   const renderSection7 = () => {
+    const authorHref = author ? (`/author/${author.id}` as unknown as Route<string>) : undefined;
+  
     return (
       <div className="listingSection__wrap">
         <h2 className="text-2xl font-semibold">Host Information</h2>
@@ -426,13 +565,13 @@ const ListingStayDetailPage = () => {
             height={56}
           />
           <div>
-            <a className="block text-xl font-medium" href="##">
+            <a className="block text-xl font-medium" href={authorHref || "#"}>
               {author?.username}
             </a>
             <div className="mt-1.5 flex items-center text-sm text-neutral-500 dark:text-neutral-400">
-              <StartRating point={author?.starRating} />
+              <StartRating point={authorAverageRating} reviewCount={authorReviewCount} />
               <span className="mx-2">·</span>
-              <span> {author?.count}</span>
+              <span> {authorReviewCount} {authorReviewCount === 1 ? 'review' : 'reviews'}</span>
             </div>
           </div>
         </div>
@@ -460,11 +599,80 @@ const ListingStayDetailPage = () => {
         </div>
         <div className="w-14 border-b border-neutral-200 dark:border-neutral-700" />
         <div>
-          <ButtonSecondary href="/author">See Host Profile</ButtonSecondary>
+          <ButtonSecondary href={authorHref}>See Host Profile</ButtonSecondary>
         </div>
       </div>
     );
   };
+
+  
+  const renderSection8 = () => {
+  const displayedReviews = showAllReviews ? reviews : reviews.slice(0, 4);
+
+  return (
+    <div className="listingSection__wrap">
+      {/* HEADING */}
+      <h2 className="text-2xl font-semibold">
+        Reviews ({reviews.length} {reviews.length === 1 ? 'review' : 'reviews'})
+      </h2>
+      <div className="w-14 border-b border-neutral-200 dark:border-neutral-700"></div>
+
+      {/* Content */}
+      <div className="space-y-5">
+        <FiveStartIconForRate
+          iconClass="w-6 h-6"
+          className="space-x-0.5"
+          defaultPoint={rating}
+          setRating={setRating}
+        />
+        <div className="relative">
+          <Input
+            fontClass=""
+            sizeClass="h-16 px-4 py-3"
+            rounded="rounded-3xl"
+            placeholder="Share your thoughts ..."
+            value={newReview}
+            onChange={(e) => setNewReview(e.target.value)}
+          />
+          <ButtonCircle
+            className="absolute right-2 top-1/2 transform -translate-y-1/2"
+            size=" w-12 h-12 "
+            onClick={handleAddReview}
+          >
+            <ArrowRightIcon className="w-5 h-5" />
+          </ButtonCircle>
+        </div>
+      </div>
+
+      {/* comment */}
+      <div className="divide-y divide-neutral-100 dark:divide-neutral-800">
+        {reviews.length === 0 ? (
+          <div className="text-neutral-500 dark:text-neutral-400 py-8">No reviews yet.</div>
+        ) : (
+          displayedReviews.map(review => (
+            <CommentListing
+              key={review.id}
+              className="py-8"
+              data={review}
+              onEditReview={handleEditReview}
+              onDeleteReview={handleDeleteReview}
+              isUserAuthorized={isUserReview(review)}
+            />
+          ))
+        )}
+        {reviews.length > 4 && (
+          <div className="pt-8">
+            <ButtonSecondary onClick={handleToggleShowAllReviews}>
+              {showAllReviews ? 'Hide Reviews' : 'View More Reviews'}
+            </ButtonSecondary>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+  
 
   const renderSidebar = () => {
     return (
@@ -476,7 +684,7 @@ const ListingStayDetailPage = () => {
               /Night
             </span>
           </span>
-          <StartRating />
+          <StartRating point={averageRating} reviewCount={reviewCount} />
         </div>
         <form className="flex flex-col border border-neutral-200 dark:border-neutral-700 rounded-3xl ">
           <StayDatesRangeInput className="flex-1 z-[11]" />
@@ -502,6 +710,7 @@ const ListingStayDetailPage = () => {
       </div>
     );
   };
+  
 
    return (
     <div className="nc-ListingStayDetailPage">
@@ -554,7 +763,7 @@ const ListingStayDetailPage = () => {
           </button>
         </div>
       </header>
-      <main className="relative z-10 mt-11 flex flex-col lg:flex-row">
+        <main className="relative z-10 mt-11 flex flex-col lg:flex-row">
         <div className="w-full lg:w-3/5 xl:w-2/3 space-y-8 lg:space-y-10 lg:pr-10">
           {renderSection1()}
           {renderSection2()}
@@ -564,6 +773,7 @@ const ListingStayDetailPage = () => {
           {renderSection5()}
           {renderSection6()}
           {renderSection7()}
+          {renderSection8()}
         </div>
         <div className="hidden lg:block flex-grow mt-14 lg:mt-0">
           <div className="sticky top-28">{renderSidebar()}</div>

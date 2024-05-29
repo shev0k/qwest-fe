@@ -13,6 +13,19 @@ export interface ListingGalleryImage {
   url: string;
 }
 
+export interface ReviewDTO {
+  id?: number;
+  rating: number;
+  comment: string;
+  stayListingId: number;
+  authorId: number;
+  authorName: string;
+  authorAvatar?: string | StaticImageData;
+  stayTitle?: string;
+  createdDate?: string;
+  createdAt?: string;
+}
+
 
 //  ##########  PostDataType ######## //
 export interface TaxonomyType {
@@ -27,6 +40,19 @@ export interface TaxonomyType {
   listingType?: "stay" | "experiences";
 }
 
+export interface NotificationType {
+  id: number;
+  senderId: number;
+  senderName: string;
+  senderAvatar: string;
+  authorId: number;
+  message: string;
+  timestamp: string;
+  type: string;
+  isRead: boolean;
+}
+
+
 export interface AuthorType {
   id: number;
   firstName: string;
@@ -35,8 +61,10 @@ export interface AuthorType {
   avatar: string | StaticImageData;
   bgImage?: string | StaticImageData;
   email?: string;
+  role?: string;
   count: number;
   description: string;
+  country?: string;
   jobName: string;
   href: Route<string>;
   starRating?: number;

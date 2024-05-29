@@ -1,71 +1,88 @@
-import { StarIcon } from "@heroicons/react/24/solid";
 import React, { FC } from "react";
+import { StarIcon } from "@heroicons/react/24/solid";
 import Avatar from "@/shared/Avatar";
+import { ReviewDTO } from "@/data/types";
+import EditButton from "@/components/EditButton";
+import DeleteButton from "@/components/DeleteButton";
+import { format, isValid } from 'date-fns';
+import Link from "next/link";  // Import Link component from Next.js
 
-interface CommentListingDataType {
-  name: string;
-  avatar?: string;
-  date: string;
-  comment: string;
-  starPoint: number;
-}
-
-export interface CommentListingProps {
+interface CommentListingProps {
   className?: string;
-  data?: CommentListingDataType;
-  hasListingTitle?: boolean;
+  data: ReviewDTO;
+  onEditReview?: (reviewId: number, updatedComment: string) => void;
+  onDeleteReview?: (reviewId: number) => void;
+  isUserAuthorized?: boolean;
+  showStayTitle?: boolean; // Optional prop to show stay title
 }
-
-const DEMO_DATA: CommentListingDataType = {
-  name: "Claudiu Gabriel",
-  date: "March 20, 2024",
-  comment:
-    "very nice",
-  starPoint: 5,
-};
 
 const CommentListing: FC<CommentListingProps> = ({
   className = "",
-  data = DEMO_DATA,
-  hasListingTitle,
+  data,
+  onEditReview,
+  onDeleteReview,
+  isUserAuthorized = false, // Default to false
+  showStayTitle = false, // Default to false
 }) => {
+  if (!data) return null;
+
+  const handleEdit = () => {
+    if (onEditReview) {
+      const updatedComment = prompt("Edit your comment:", data.comment);
+      if (updatedComment !== null) {
+        onEditReview(data.id!, updatedComment);
+      }
+    }
+  };
+
+  const handleDelete = () => {
+    if (onDeleteReview && confirm("Are you sure you want to delete this review?")) {
+      onDeleteReview(data.id!);
+    }
+  };
+
+  const date = new Date(data.createdAt || '');
+  const formattedDate = isValid(date) ? format(date, 'MMM dd, yyyy') : 'Invalid Date';
+
   return (
-    <div
-      className={`nc-CommentListing flex space-x-4 ${className}`}
-      data-nc-id="CommentListing"
-    >
+    <div className={`nc-CommentListing flex space-x-4 ${className}`} data-nc-id="CommentListing">
       <div className="pt-0.5">
-        <Avatar
-          sizeClass="h-10 w-10 text-lg"
-          radius="rounded-full"
-          username={data.name}
-          imgUrl={data.avatar}
-        />
+        <Avatar sizeClass="h-10 w-10 text-lg" radius="rounded-full" username={data.authorName} imgUrl={data.authorAvatar} />
       </div>
       <div className="flex-grow">
         <div className="flex justify-between space-x-3">
           <div className="flex flex-col">
             <div className="text-sm font-semibold">
-              <span>{data.name}</span>
-              {hasListingTitle && (
+              <Link href={`/author/${data.authorId}`} passHref>  {/* Use Link component for author name */}
+                <a>{data.authorName}</a>
+              </Link>
+              {showStayTitle && data.stayTitle && (
                 <>
                   <span className="text-neutral-500 dark:text-neutral-400 font-normal">
                     {` review in `}
                   </span>
-                  <a href="/">The Lounge & Bar</a>
+                  <Link href={`/listing-stay-detail/${data.stayListingId}`} passHref>  {/* Use Link component for stay title */}
+                    <a>{data.stayTitle}</a>
+                  </Link>
                 </>
               )}
             </div>
             <span className="text-sm text-neutral-500 dark:text-neutral-400 mt-0.5">
-              {data.date}
+              {formattedDate}
             </span>
           </div>
-          <div className="flex text-yellow-500">
-            <StarIcon className="w-4 h-4" />
-            <StarIcon className="w-4 h-4" />
-            <StarIcon className="w-4 h-4" />
-            <StarIcon className="w-4 h-4" />
-            <StarIcon className="w-4 h-4" />
+          <div className="flex items-center space-x-2">
+            {isUserAuthorized && (
+              <>
+                <EditButton onClick={handleEdit} />
+                <DeleteButton onClick={handleDelete} />
+              </>
+            )}
+            <div className="flex text-yellow-500">
+              {[...Array(data.rating)].map((_, i) => (
+                <StarIcon key={i} className="w-4 h-4" />
+              ))}
+            </div>
           </div>
         </div>
         <span className="block mt-3 text-neutral-6000 dark:text-neutral-300">
