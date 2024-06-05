@@ -1,17 +1,15 @@
-"use client";
-
 import React from "react";
-import ButtonClose from "@/shared/ButtonClose";
-import Logo from "@/shared/Logo";
+import Link from "next/link";
 import { Disclosure } from "@headlessui/react";
 import { NavItemType } from "./NavigationItem";
 import { NAVIGATION_DEMO } from "@/data/navigation";
-import ButtonPrimary from "@/shared/ButtonPrimary";
+import ButtonClose from "@/shared/ButtonClose";
+import Logo from "@/shared/Logo";
 import SocialsList from "@/shared/SocialsList";
-import { ChevronDownIcon } from "@heroicons/react/24/solid";
 import SwitchDarkMode from "@/shared/SwitchDarkMode";
-import Link from "next/link";
-import LangDropdown from "@/app/(client-components)/(Header)/LangDropdown";
+import { ChevronDownIcon } from "@heroicons/react/24/solid";
+import { useAuth } from "@/contexts/authContext";  // Import useAuth hook
+import ButtonPrimary from "../ButtonPrimary";
 
 export interface NavMobileProps {
   data?: NavItemType[];
@@ -22,6 +20,13 @@ const NavMobile: React.FC<NavMobileProps> = ({
   data = NAVIGATION_DEMO,
   onClickClose,
 }) => {
+  const { isAuthenticated, logoutUser, user } = useAuth();
+
+  const handleLogout = () => {
+    logoutUser();
+    onClickClose?.();
+  };
+
   const _renderMenuChild = (item: NavItemType) => {
     return (
       <ul className="nav-mobile-sub-menu pl-6 pb-1 text-base">
@@ -109,7 +114,7 @@ const NavMobile: React.FC<NavMobileProps> = ({
         <Logo />
         <div className="flex flex-col mt-5 text-neutral-700 dark:text-neutral-300 text-sm">
           <span>
-          Discover and share unique travel experiences, your one gateway to personalized adventures
+            Discover and share unique travel experiences, your one gateway to personalized adventures
           </span>
 
           <div className="flex justify-between items-center mt-4">
@@ -126,13 +131,16 @@ const NavMobile: React.FC<NavMobileProps> = ({
       <ul className="flex flex-col py-6 px-2 space-y-1">
         {data.map(_renderItem)}
       </ul>
-      <div className="flex items-center py-3 px-3">
-        <LangDropdown
-          className="ml-auto flex"
-          panelClassName="z-10 w-screen max-w-[280px] px-4 mb-3 right-3 bottom-full sm:px-0"
-        />
-      </div>
-
+      {isAuthenticated && (
+        <div className="p-4">
+          <ButtonPrimary
+            onClick={handleLogout}
+            className="w-full px-4 py-2 text-sm font-medium text-center text-white rounded-md "
+          >
+            Log Out
+          </ButtonPrimary>
+        </div>
+      )}
     </div>
   );
 };

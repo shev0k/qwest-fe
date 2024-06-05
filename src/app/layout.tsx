@@ -10,6 +10,7 @@ import Footer from "@/components/Footer";
 import FooterNav from "@/components/FooterNav";
 import { AuthProvider } from '@/contexts/authContext';
 import { WebSocketProvider } from '@/contexts/WebSocketContext';
+import { ReservationProvider } from '@/contexts/ReservationContext';
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -27,6 +28,7 @@ export default function RootLayout({
   return (
     <AuthProvider>
       <WebSocketProvider>
+        <ReservationProvider>
       <html lang="en" className={poppins.className}>
           <body className="bg-white text-base dark:bg-neutral-900 text-neutral-900 dark:text-neutral-200">
             <ClientCommons />
@@ -36,6 +38,7 @@ export default function RootLayout({
             <Footer />
           </body>
         </html>
+        </ReservationProvider>
       </WebSocketProvider>
     </AuthProvider>
   );

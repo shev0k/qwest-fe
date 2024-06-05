@@ -17,11 +17,17 @@ export interface UserType {
   wishlistIds: number[];
 }
 
+export interface PasswordResetData {
+  email: string;
+  newPassword: string;
+  confirmNewPassword: string;
+}
+
 export interface AuthContextType {
   isAuthenticated: boolean;
   user: UserType | null;
   wishlist: StayDataType[];
-  setUser: (user: UserType) => void;
+  setUser: (user: UserType | null) => void;
   loginUser: (userData: UserType & { token: string }) => void;
   logoutUser: () => void;
   updateUserDetails: (userData: UserType) => Promise<void>;

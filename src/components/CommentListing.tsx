@@ -53,16 +53,16 @@ const CommentListing: FC<CommentListingProps> = ({
         <div className="flex justify-between space-x-3">
           <div className="flex flex-col">
             <div className="text-sm font-semibold">
-              <Link href={`/author/${data.authorId}`} passHref>  {/* Use Link component for author name */}
-                <a>{data.authorName}</a>
+              <Link href={`/author/${data.authorId}`} passHref>
+                {data.authorName}
               </Link>
               {showStayTitle && data.stayTitle && (
                 <>
                   <span className="text-neutral-500 dark:text-neutral-400 font-normal">
                     {` review in `}
                   </span>
-                  <Link href={`/listing-stay-detail/${data.stayListingId}`} passHref>  {/* Use Link component for stay title */}
-                    <a>{data.stayTitle}</a>
+                  <Link href={`/listing-stay-detail/${data.stayListingId}`} passHref>
+                    {data.stayTitle}
                   </Link>
                 </>
               )}
@@ -85,7 +85,7 @@ const CommentListing: FC<CommentListingProps> = ({
             </div>
           </div>
         </div>
-        <span className="block mt-3 text-neutral-6000 dark:text-neutral-300">
+        <span className="block mt-3 text-neutral-600 dark:text-neutral-300">
           {data.comment}
         </span>
       </div>

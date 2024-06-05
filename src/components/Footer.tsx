@@ -17,7 +17,7 @@ const widgetMenus: WidgetFooterMenu[] = [
     id: "1",
     title: "Getting Started",
     menus: [
-      { href: "/listing-stay-map", label: "Stay Listings" },
+      { href: "/listing-stay", label: "Stay Listings" },
     ],
   },
   {

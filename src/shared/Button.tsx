@@ -2,7 +2,7 @@
 
 import { Route } from "@/routers/types";
 import Link from "next/link";
-import React, { ButtonHTMLAttributes, FC } from "react";
+import React, { ButtonHTMLAttributes, FC, CSSProperties } from "react";
 
 export interface ButtonProps {
   className?: string;
@@ -17,6 +17,7 @@ export interface ButtonProps {
   targetBlank?: boolean;
   onClick?: () => void;
   children?: React.ReactNode;
+  style?: CSSProperties; // Add style prop type
 }
 
 const Button: FC<ButtonProps> = ({
@@ -31,6 +32,7 @@ const Button: FC<ButtonProps> = ({
   type,
   loading,
   onClick = () => {},
+  style, // Accept style prop
 }) => {
   const CLASSES = `nc-Button relative h-auto inline-flex items-center justify-center rounded-full transition-colors ${fontSize} ${sizeClass} ${translate} ${className} `;
 
@@ -65,6 +67,7 @@ const Button: FC<ButtonProps> = ({
         href={href}
         target={targetBlank ? "_blank" : undefined}
         className={`${CLASSES} ${disabled ? 'pointer-events-none opacity-50' : ''}`}
+        style={style} // Apply style prop
         onClick={(e) => {
           if (disabled) {
             e.preventDefault();
@@ -84,6 +87,7 @@ const Button: FC<ButtonProps> = ({
     <button
       disabled={disabled || loading}
       className={`${CLASSES}`}
+      style={style} // Apply style prop
       onClick={onClick}
       type={type}
     >

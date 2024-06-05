@@ -6,6 +6,7 @@ import Avatar from "@/shared/Avatar";
 import ButtonPrimary from "@/shared/ButtonPrimary";
 import Input from "@/shared/Input";
 import Textarea from "@/shared/Textarea";
+import Modal from "@/components/Modal"; // Adjust the import path as needed
 import { useRouter } from 'next/navigation';
 
 const AccountPage = () => {
@@ -21,8 +22,13 @@ const AccountPage = () => {
   });
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+  const [modal, setModal] = useState({
+    isOpen: false,
+    type: "message" as "message" | "confirm",
+    message: "",
+    onConfirm: () => {},
+    onCancel: () => {},
+  });
   const router = useRouter();
 
   useEffect(() => {
@@ -79,18 +85,37 @@ const AccountPage = () => {
         // Trigger avatar upload
         try {
           await updateUserAvatar(user!.id, file);
-          setSuccess('Avatar updated successfully.');
+          setModal({
+            isOpen: true,
+            type: "message",
+            message: "Avatar updated successfully.",
+            onConfirm: () => {
+              setModal({ ...modal, isOpen: false });
+              window.location.reload();
+            },
+            onCancel: () => setModal({ ...modal, isOpen: false }),
+          });
           setAvatarFile(null);
-          // Reload to get the updated avatar
-          window.location.reload();
         } catch (error) {
           console.error("Avatar update error:", error);
-          setError("Failed to update avatar. Please try again.");
+          setModal({
+            isOpen: true,
+            type: "message",
+            message: "Failed to update avatar. Please try again.",
+            onConfirm: () => setModal({ ...modal, isOpen: false }),
+            onCancel: () => setModal({ ...modal, isOpen: false }),
+          });
         }
       } else {
         setAvatarFile(null);
         setAvatarPreview(null);
-        setError('Please upload a valid image file (PNG, JPEG, JPG, GIF).');
+        setModal({
+          isOpen: true,
+          type: "message",
+          message: "Please upload a valid image file (PNG, JPEG, JPG, GIF).",
+          onConfirm: () => setModal({ ...modal, isOpen: false }),
+          onCancel: () => setModal({ ...modal, isOpen: false }),
+        });
       }
     } else {
       setAvatarFile(null);
@@ -100,11 +125,23 @@ const AccountPage = () => {
 
   const validateForm = () => {
     if (!formData.email || !/\S+@\S+\.\S+/.test(formData.email)) {
-      setError('Please enter a valid email address.');
+      setModal({
+        isOpen: true,
+        type: "message",
+        message: "Please enter a valid email address.",
+        onConfirm: () => setModal({ ...modal, isOpen: false }),
+        onCancel: () => setModal({ ...modal, isOpen: false }),
+      });
       return false;
     }
     if (formData.phoneNumber && !/^\d{10}$/.test(formData.phoneNumber)) {
-      setError('Phone number must be 10 digits.');
+      setModal({
+        isOpen: true,
+        type: "message",
+        message: "Phone number must be 10 digits.",
+        onConfirm: () => setModal({ ...modal, isOpen: false }),
+        onCancel: () => setModal({ ...modal, isOpen: false }),
+      });
       return false;
     }
     return true;
@@ -121,11 +158,15 @@ const AccountPage = () => {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setError("");
-    setSuccess("");
 
     if (!user) {
-      setError('User data is incomplete. Unable to update profile.');
+      setModal({
+        isOpen: true,
+        type: "message",
+        message: "User data is incomplete. Unable to update profile.",
+        onConfirm: () => setModal({ ...modal, isOpen: false }),
+        onCancel: () => setModal({ ...modal, isOpen: false }),
+      });
       return;
     }
 
@@ -137,11 +178,23 @@ const AccountPage = () => {
       // Update user details
       await updateUserDetails({ ...user, ...formData });
 
-      setSuccess('Profile updated successfully.');
+      setModal({
+        isOpen: true,
+        type: "message",
+        message: "Profile updated successfully.",
+        onConfirm: () => setModal({ ...modal, isOpen: false }),
+        onCancel: () => setModal({ ...modal, isOpen: false }),
+      });
       sessionStorage.removeItem('formData'); // Clear session storage after successful update
     } catch (error) {
       console.error("Update error:", error);
-      setError("Failed to update profile. Please try again.");
+      setModal({
+        isOpen: true,
+        type: "message",
+        message: "Failed to update profile. Please try again.",
+        onConfirm: () => setModal({ ...modal, isOpen: false }),
+        onCancel: () => setModal({ ...modal, isOpen: false }),
+      });
     }
   };
 
@@ -204,13 +257,20 @@ const AccountPage = () => {
             <Label htmlFor="description">About you</Label>
             <Textarea id="description" name="description" className="mt-1.5" value={formData.description} onChange={handleChange} />
           </div>
-          {error && <div className="text-red-500 mt-4">{error}</div>}
-          {success && <div className="text-green-500 mt-4">{success}</div>}
           <div className="pt-2">
             <ButtonPrimary>Save Changes</ButtonPrimary>
           </div>
         </div>
       </form>
+      {/* Modal for messages */}
+      <Modal
+        type={modal.type}
+        message={modal.message}
+        isOpen={modal.isOpen}
+        onClose={modal.onConfirm}
+        onConfirm={modal.onConfirm}
+        onCancel={modal.onCancel}
+      />
     </div>
   );
 };

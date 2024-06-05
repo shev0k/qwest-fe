@@ -2,26 +2,30 @@ import React, { FC } from "react";
 import { StayDataType } from "@/data/types";
 import StartRating from "@/components/StartRating";
 import BtnLikeIcon from "@/components/BtnLikeIcon";
-import SaleOffBadge from "@/components/SaleOffBadge";
 import Badge from "@/shared/Badge";
 import { PathName } from "@/routers/types";  
 import Link from "next/link";
 import GallerySlider from "./GallerySlider";
+import DeleteButton from "@/components/DeleteButton";
 
 export interface StayCardProps {
   className?: string;
   data: StayDataType;
-  showLikeButton?: boolean; 
+  showLikeButton?: boolean;
   isLinkActive?: boolean;
   size?: "default" | "small";
+  badge?: string;
+  onDelete?: () => void; // Optional delete button handler
 }
 
 const StayCard: FC<StayCardProps> = ({
   size = "default",
   className = "",
   data,
-  showLikeButton = true, 
+  showLikeButton = true,
   isLinkActive = true,
+  badge,
+  onDelete,
 }) => {
   const {
     galleryImageUrls,
@@ -36,16 +40,15 @@ const StayCard: FC<StayCardProps> = ({
     id,
   } = data;
 
-
   const renderSliderGallery = () => {
     return (
       <div className="relative w-full">
         <GallerySlider
-        uniqueID={`StayCard2_${id}`}
-        ratioClass="aspect-w-12 aspect-h-11"
-        galleryImageUrls={galleryImageUrls}
-        imageClass="rounded-lg"
-        href={`/listing-stay-detail/${id}` as PathName}
+          uniqueID={`StayCard2_${id}`}
+          ratioClass="aspect-w-12 aspect-h-11"
+          galleryImageUrls={galleryImageUrls}
+          imageClass="rounded-lg"
+          href={`/listing-stay-detail/${id}` as PathName}
         />
         {showLikeButton && <BtnLikeIcon listingId={id} isLiked={like} className="absolute right-3 top-3 z-[1]" />}
       </div>
@@ -123,6 +126,16 @@ const StayCard: FC<StayCardProps> = ({
     >
       {renderSliderGallery()}
       {isLinkActive ? <Link href={`/listing-stay-detail/${id}`}>{renderContent()}</Link> : renderContent()}
+      {badge && (
+        <div className="absolute bottom-[16px] right-[15px]">
+          <Badge name={badge} color="red" />
+        </div>
+      )}
+      {onDelete && (
+        <div className="absolute bottom-[17px] right-4">
+          <DeleteButton onClick={onDelete}>Cancel</DeleteButton>
+        </div>
+      )}
     </div>
   );
 };

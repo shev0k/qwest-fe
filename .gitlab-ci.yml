@@ -3,6 +3,7 @@ image: node:18
 stages:
   - lint
   - build
+  - deploy
 
 before_script:
   - npm config set cache .npm --global
@@ -21,3 +22,11 @@ build_frontend:
     paths:
       - .next/
     expire_in: 1 week
+
+deploy_frontend:
+  stage: deploy
+  script:
+    - echo "Deploying frontend application"
+    - docker-compose down
+    - docker-compose build
+    - docker-compose up -d

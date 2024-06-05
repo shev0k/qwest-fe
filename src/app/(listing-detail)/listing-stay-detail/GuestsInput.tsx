@@ -1,43 +1,53 @@
-"use client";
-
-import React, { Fragment, FC, useState } from "react";
+import React, { Fragment, FC, useState, useEffect } from "react";
 import { Popover, Transition } from "@headlessui/react";
 import NcInputNumber from "@/components/NcInputNumber";
 import { UserPlusIcon } from "@heroicons/react/24/outline";
 import ClearDataButton from "@/app/(client-components)/(HeroSearchForm)/ClearDataButton";
-import { GuestsObject } from "@/app/(client-components)/type";
+import { GuestsObject } from "@/data/types";
 
 export interface GuestsInputProps {
   className?: string;
+  onChange?: (totalGuests: GuestsObject) => void;
+  value?: GuestsObject;
 }
 
-const GuestsInput: FC<GuestsInputProps> = ({ className = "flex-1" }) => {
-  const [guestAdultsInputValue, setGuestAdultsInputValue] = useState(2);
-  const [guestChildrenInputValue, setGuestChildrenInputValue] = useState(1);
-  const [guestInfantsInputValue, setGuestInfantsInputValue] = useState(1);
+const GuestsInput: FC<GuestsInputProps> = ({
+  className = "flex-1",
+  onChange,
+  value = { guestAdults: 1, guestChildren: 0, guestInfants: 0 },
+}) => {
+  const [guestAdultsInputValue, setGuestAdultsInputValue] = useState(value.guestAdults || 1);
+  const [guestChildrenInputValue, setGuestChildrenInputValue] = useState(value.guestChildren || 0);
+  const [guestInfantsInputValue, setGuestInfantsInputValue] = useState(value.guestInfants || 0);
 
-  const handleChangeData = (value: number, type: keyof GuestsObject) => {
-    let newValue = {
+  useEffect(() => {
+    setGuestAdultsInputValue(value.guestAdults || 1);
+    setGuestChildrenInputValue(value.guestChildren || 0);
+    setGuestInfantsInputValue(value.guestInfants || 0);
+  }, [value]);
+
+  const handleChangeData = (newValue: number, type: keyof GuestsObject) => {
+    let updatedValues = {
       guestAdults: guestAdultsInputValue,
       guestChildren: guestChildrenInputValue,
       guestInfants: guestInfantsInputValue,
     };
+
     if (type === "guestAdults") {
-      setGuestAdultsInputValue(value);
-      newValue.guestAdults = value;
+      setGuestAdultsInputValue(newValue);
+      updatedValues.guestAdults = newValue;
+    } else if (type === "guestChildren") {
+      setGuestChildrenInputValue(newValue);
+      updatedValues.guestChildren = newValue;
+    } else if (type === "guestInfants") {
+      setGuestInfantsInputValue(newValue);
+      updatedValues.guestInfants = newValue;
     }
-    if (type === "guestChildren") {
-      setGuestChildrenInputValue(value);
-      newValue.guestChildren = value;
-    }
-    if (type === "guestInfants") {
-      setGuestInfantsInputValue(value);
-      newValue.guestInfants = value;
-    }
+
+    onChange && onChange(updatedValues);
   };
 
-  const totalGuests =
-    guestChildrenInputValue + guestAdultsInputValue + guestInfantsInputValue;
+  const totalGuests = guestChildrenInputValue + guestAdultsInputValue + guestInfantsInputValue;
 
   return (
     <Popover className={`flex relative ${className}`}>
@@ -66,9 +76,10 @@ const GuestsInput: FC<GuestsInputProps> = ({ className = "flex-1" }) => {
               {!!totalGuests && open && (
                 <ClearDataButton
                   onClick={() => {
-                    setGuestAdultsInputValue(0);
+                    setGuestAdultsInputValue(1);
                     setGuestChildrenInputValue(0);
                     setGuestInfantsInputValue(0);
+                    onChange && onChange({ guestAdults: 1, guestChildren: 0, guestInfants: 0 });
                   }}
                 />
               )}
@@ -102,7 +113,6 @@ const GuestsInput: FC<GuestsInputProps> = ({ className = "flex-1" }) => {
                 label="Children"
                 desc="Ages 2–12"
               />
-
               <NcInputNumber
                 className="w-full mt-6"
                 defaultValue={guestInfantsInputValue}

@@ -26,6 +26,20 @@ export interface ReviewDTO {
   createdAt?: string;
 }
 
+export interface ReservationDTO {
+  id?: number;
+  authorId: number;
+  stayListingId: number;
+  checkInDate: string;
+  checkOutDate: string;
+  adults: number;
+  children: number;
+  infants: number;
+  totalPrice: number;
+  bookingCode?: string;
+  cancelled?: boolean;
+  selectedDates: string[];
+}
 
 //  ##########  PostDataType ######## //
 export interface TaxonomyType {
@@ -42,15 +56,19 @@ export interface TaxonomyType {
 
 export interface NotificationType {
   id: number;
+  authorId: number;
   senderId: number;
   senderName: string;
   senderAvatar: string;
-  authorId: number;
   message: string;
   timestamp: string;
   type: string;
+  timestampFormatted: string | null;
+  read: boolean;
   isRead: boolean;
+  stayId?: number;
 }
+
 
 
 export interface AuthorType {
@@ -62,6 +80,7 @@ export interface AuthorType {
   bgImage?: string | StaticImageData;
   email?: string;
   role?: string;
+  phoneNumber?: string;
   count: number;
   description: string;
   country?: string;
@@ -96,6 +115,11 @@ export type TwMainColor =
   | "purple"
   | "gray";
 
+  export interface GuestsObject {
+    guestAdults: number;
+    guestChildren: number;
+    guestInfants: number;
+  }
 //
 export interface StayDataType {
   id: number;

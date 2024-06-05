@@ -49,6 +49,8 @@ const DEMO_AUTHORS: AuthorType[] = __authors.map((item, index) => ({
   ...item,
   avatar: imgs[index] || item.avatar,
   href: item.href as Route,
+  wishlistIds: [] as number[], // Initialize wishlistIds as an empty array with type annotation
 }));
+
 
 export { DEMO_AUTHORS };

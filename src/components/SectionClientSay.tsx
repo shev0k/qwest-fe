@@ -1,7 +1,9 @@
 "use client";
 
 import Heading from "@/shared/Heading";
-import React, { FC, useState } from "react";
+import React, { FC, useEffect, useState } from "react";
+import { fetchAllReviews } from "@/api/reviewServices";
+import { ReviewDTO } from "@/data/types";
 import clientSayMain from "@/images/clientSayMain.png";
 import clientSay1 from "@/images/clientSay1.png";
 import clientSay2 from "@/images/clientSay2.png";
@@ -19,40 +21,28 @@ import { variants } from "@/utils/animationVariants";
 
 export interface SectionClientSayProps {
   className?: string;
-  data?: typeof DEMO_DATA;
 }
 
-const DEMO_DATA = [
-  {
-    id: 1,
-    clientName: "Marcus Fenix",
-    clientAddress: "New York, USA",
-    content:
-      "The listing was spot-on, and the host's attention to detail made our stay unforgettable.",
-  },
-  {
-    id: 2,
-    clientName: "Elena Serrano",
-    clientAddress: "Seville, Spain",
-    content:
-      "The property was even more beautiful in person. Exceptional service and a memorable stay!",
-  },
-  {
-    id: 3,
-    clientName: "Haruto Watanabe",
-    clientAddress: "Kyoto, Japan",
-    content:
-      "The authenticity of our accommodation was unmatched. We enjoyed a unique cultural experience.",
-  },
-];
-
-
-const SectionClientSay: FC<SectionClientSayProps> = ({
-  className = "",
-  data = DEMO_DATA,
-}) => {
+const SectionClientSay: FC<SectionClientSayProps> = ({ className = "" }) => {
+  const [reviews, setReviews] = useState<ReviewDTO[]>([]);
+  const [selectedReviews, setSelectedReviews] = useState<ReviewDTO[]>([]);
   const [index, setIndex] = useState(0);
   const [direction, setDirection] = useState(0);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const allReviews = await fetchAllReviews();
+        setReviews(allReviews);
+        const randomReviews = allReviews.sort(() => 0.5 - Math.random()).slice(0, 3);
+        setSelectedReviews(randomReviews);
+      } catch (error) {
+        console.error("Error fetching reviews:", error);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   function changeItemId(newVal: number) {
     if (newVal > index) {
@@ -65,7 +55,7 @@ const SectionClientSay: FC<SectionClientSayProps> = ({
 
   const handlers = useSwipeable({
     onSwipedLeft: () => {
-      if (index < data?.length - 1) {
+      if (index < selectedReviews.length - 1) {
         changeItemId(index + 1);
       }
     },
@@ -77,7 +67,7 @@ const SectionClientSay: FC<SectionClientSayProps> = ({
     trackMouse: true,
   });
 
-  let currentItem = data[index];
+  let currentItem = selectedReviews[index];
 
   const renderBg = () => {
     return (
@@ -118,14 +108,14 @@ const SectionClientSay: FC<SectionClientSayProps> = ({
 
   return (
     <div className={`nc-SectionClientSay relative ${className} `}>
-    <Heading desc="Discover the impressions and opinions about QWEST" isCenter>
-      Feedback from Afar
-    </Heading>
+      <Heading desc="Discover the impressions and opinions about QWEST" isCenter>
+        Feedback from Afar
+      </Heading>
 
       <div className="relative md:mb-16 max-w-2xl mx-auto">
         {renderBg()}
         <Image className="mx-auto" src={clientSayMain} alt="" />
-        <div className={`mt-12 lg:mt-16 relative `}>
+        <div className={`mt-12 lg:mt-16 relative flex justify-center`}>
           <Image
             className="opacity-50 md:opacity-100 absolute -mr-16 lg:mr-3 right-full top-1"
             src={quotationImg}
@@ -148,32 +138,37 @@ const SectionClientSay: FC<SectionClientSayProps> = ({
               {...handlers}
             >
               <AnimatePresence initial={false} custom={direction}>
-                <motion.div
-                  key={index}
-                  custom={direction}
-                  variants={variants(200, 1)}
-                  initial="enter"
-                  animate="center"
-                  // exit="exit"
-                  className="inline-flex flex-col items-center text-center whitespace-normal"
-                >
-                  <>
-                    <span className="block text-2xl">
-                      {currentItem.content}
-                    </span>
-                    <span className="block mt-8 text-2xl font-semibold">
-                      {currentItem.clientName}
-                    </span>
-                    <div className="flex items-center space-x-2 text-lg mt-2 text-neutral-500 dark:text-neutral-400">
-                      <MapPinIcon className="color-yellow-accent h-5 w-5" />
-                      <span>{currentItem.clientAddress}</span>
-                    </div>
-                  </>
-                </motion.div>
+                {selectedReviews.length > 0 ? (
+                  <motion.div
+                    key={index}
+                    custom={direction}
+                    variants={variants(200, 1)}
+                    initial="enter"
+                    animate="center"
+                    className="inline-flex flex-col items-center text-center whitespace-normal"
+                  >
+                    <>
+                      <span className="block text-2xl">
+                        {currentItem.comment}
+                      </span>
+                      <span className="block mt-8 text-2xl font-semibold">
+                        {currentItem.authorName}
+                      </span>
+                      <div className="flex items-center space-x-2 text-lg mt-2 text-neutral-500 dark:text-neutral-400">
+                        <MapPinIcon className="color-yellow-accent h-5 w-5" />
+                        <span>{currentItem.stayTitle}</span>
+                      </div>
+                    </>
+                  </motion.div>
+                ) : (
+                  <div className="text-center text-2xl">
+                    No reviews yet.
+                  </div>
+                )}
               </AnimatePresence>
 
               <div className="mt-10 flex items-center justify-center space-x-2">
-                {data.map((item, i) => (
+                {selectedReviews.map((item, i) => (
                   <button
                     className={`w-2 h-2 rounded-full ${
                       i === index ? "bg-primary-custom-2" : "bg-primary-custom-3 "

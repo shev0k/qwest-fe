@@ -4,9 +4,9 @@ import { useRouter } from 'next/navigation';
 import Link from "next/link";
 import { signUp } from "@/api/authService";
 import { useAuth } from '@/contexts/authContext';
-
 import Input from "@/shared/Input";
 import ButtonPrimary from "@/shared/ButtonPrimary";
+import Modal from "@/components/Modal"; // Adjust the import path as needed
 
 export interface PageSignUpProps {}
 
@@ -18,7 +18,13 @@ const PageSignUp: FC<PageSignUpProps> = () => {
     username: "",
     country: "" 
   });
-  const [error, setError] = useState<string | null>(null);
+  const [modal, setModal] = useState({
+    isOpen: false,
+    type: "message" as "message" | "confirm",
+    message: "",
+    onConfirm: () => setModal({ ...modal, isOpen: false }),
+    onCancel: () => setModal({ ...modal, isOpen: false }),
+  });
   const { loginUser, isAuthenticated } = useAuth();
   const router = useRouter();
 
@@ -35,10 +41,15 @@ const PageSignUp: FC<PageSignUpProps> = () => {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (formData.password !== formData.confirmPassword) {
-      setError("Passwords do not match");
+      setModal({
+        isOpen: true,
+        type: "message",
+        message: "Passwords do not match.",
+        onConfirm: () => setModal({ ...modal, isOpen: false }),
+        onCancel: () => setModal({ ...modal, isOpen: false }),
+      });
       return;
     }
-    setError(null);  // Clear any previous errors
 
     try {
       const response = await signUp({
@@ -54,13 +65,33 @@ const PageSignUp: FC<PageSignUpProps> = () => {
         token: response.jwt
       });
       router.push('/');  // Redirect to home or dashboard
-    } catch (error) {
-      setError("An unexpected error occurred during sign up. Please try again.");
+    } catch (error: any) {
+      let errMsg = "An unexpected error occurred during sign up. Please try again.";
+      if (error.response) {
+        switch (error.response.status) {
+          case 401:
+            errMsg = "Invalid credentials or user does not exist.";
+            break;
+          case 403:
+            errMsg = "You are not authorized to perform this action.";
+            break;
+          case 500:
+            errMsg = "Server error. The entity you are trying to access may not exist.";
+            break;
+        }
+      }
+      setModal({
+        isOpen: true,
+        type: "message",
+        message: errMsg,
+        onConfirm: () => setModal({ ...modal, isOpen: false }),
+        onCancel: () => setModal({ ...modal, isOpen: false }),
+      });
     }
   };
 
   return (
-    <div className={`nc-PageSignUp  `}>
+    <div className={`nc-PageSignUp`}>
       <div className="container mb-24 lg:mb-32">
         <h2 className="my-20 flex items-center text-3xl leading-[115%] md:text-5xl md:leading-[115%] font-semibold text-neutral-900 dark:text-neutral-100 justify-center">
           Sign Up
@@ -116,7 +147,15 @@ const PageSignUp: FC<PageSignUpProps> = () => {
             </label>
             <ButtonPrimary type="submit">Continue</ButtonPrimary>
           </form>
-          {error && <div className="text-red-500 text-center mt-4">{error}</div>}
+          {/* Modal for messages */}
+          <Modal
+            type={modal.type}
+            message={modal.message}
+            isOpen={modal.isOpen}
+            onClose={modal.onConfirm}
+            onConfirm={modal.onConfirm}
+            onCancel={modal.onCancel}
+          />
           {/* ==== */}
           <span className="block text-center text-neutral-700 dark:text-neutral-300">
             Already Have an Account? {` `}

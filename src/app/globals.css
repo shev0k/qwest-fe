@@ -132,3 +132,9 @@ p::selection {
   border-color: #eab308!important;
   box-shadow: 0 0 0 5px #eab308!important;
 }
+
+.custom-dark-color{
+  --tw-bg-opacity: 1;
+  color: #eab308!important;
+  background-color: #eab308!important;
+}

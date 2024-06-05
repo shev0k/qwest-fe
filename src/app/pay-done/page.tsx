@@ -1,11 +1,53 @@
+"use client";
+
+import { useEffect, useState, FC } from 'react';
 import StartRating from "@/components/StartRating";
-import React, { FC } from "react";
 import ButtonPrimary from "@/shared/ButtonPrimary";
 import Image from "next/image";
+import withReservationGuard from '@/components/withReservationGuard';
+import { ReservationDTO } from '@/data/types';
+import fetchStayListingById from "@/api/fetchStayListingById";
+import { format } from 'date-fns';
 
 export interface PayPageProps {}
 
 const PayPage: FC<PayPageProps> = () => {
+  const [reservationDetails, setReservationDetails] = useState<ReservationDTO | null>(null);
+  const [listing, setListing] = useState<any>(null);
+
+  useEffect(() => {
+    const details = JSON.parse(localStorage.getItem('reservationDetails') || '{}');
+    setReservationDetails(details);
+  
+    if (details.stayListingId) {
+      fetchStayListingById(details.stayListingId).then(setListing);
+    } else {
+      console.warn('No stay listing ID found in reservation details.');
+    }
+  
+    return () => {
+      localStorage.removeItem('reservationDetails'); // Clear local storage on component unmount
+    };
+  }, []);
+  
+
+  if (!reservationDetails || !listing) {
+    return null; // Render nothing if reservation details are not available
+  }
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return format(date, 'MMM dd');
+  };
+
+  const formatGuests = (adults: number, children: number, infants: number) => {
+    const formattedAdults = `${adults} Adult${adults !== 1 ? 's' : ''}`;
+    const formattedChildren = `${children} Child${children !== 1 ? 'ren' : ''}`;
+    const formattedInfants = `${infants} Infant${infants !== 1 ? 's' : ''}`;
+
+    return `${formattedAdults}, ${formattedChildren}, ${formattedInfants}`;
+  };
+
   const renderContent = () => {
     return (
       <div className="w-full flex flex-col sm:rounded-2xl space-y-10 px-0 sm:p-6 xl:p-8">
@@ -15,34 +57,29 @@ const PayPage: FC<PayPageProps> = () => {
 
         <div className="border-b border-neutral-200 dark:border-neutral-700"></div>
 
-        {/* ------------------------ */}
         <div className="space-y-6">
           <h3 className="text-2xl font-semibold">Your Booking</h3>
           <div className="flex flex-col sm:flex-row sm:items-center">
             <div className="flex-shrink-0 w-full sm:w-40">
-              <div className=" aspect-w-4 aspect-h-3 sm:aspect-h-4 rounded-2xl overflow-hidden">
+              <div className="aspect-w-4 aspect-h-3 sm:aspect-h-4 rounded-2xl overflow-hidden">
                 <Image
                   fill
                   alt=""
                   className="object-cover"
-                  src="https://images.pexels.com/photos/6373478/pexels-photo-6373478.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
+                  src={listing.featuredImage || "https://images.pexels.com/photos/6373478/pexels-photo-6373478.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"}
                 />
               </div>
             </div>
-            <div className="pt-5  sm:pb-5 sm:px-5 space-y-3">
+            <div className="pt-5 sm:pb-5 sm:px-5 space-y-3">
               <div>
                 <span className="text-sm text-neutral-500 dark:text-neutral-400 line-clamp-1">
-                  Hotel room in Tokyo, Japan
+                  {listing.country}
                 </span>
                 <span className="text-base sm:text-lg font-medium mt-1 block">
-                  The Lounge & Bar
+                  {listing.title}
                 </span>
               </div>
-              <span className="block  text-sm text-neutral-500 dark:text-neutral-400">
-                2 beds · 2 baths
-              </span>
-              <div className="w-10 border-b border-neutral-200  dark:border-neutral-700"></div>
-              <StartRating />
+              <div className="w-10 border-b border-neutral-200 dark:border-neutral-700"></div>
             </div>
           </div>
           <div className="mt-6 border border-neutral-200 dark:border-neutral-700 rounded-3xl flex flex-col sm:flex-row divide-y sm:divide-x sm:divide-y-0 divide-neutral-200 dark:divide-neutral-700">
@@ -65,7 +102,7 @@ const PayPage: FC<PayPageProps> = () => {
               <div className="flex flex-col">
                 <span className="text-sm text-neutral-400">Date</span>
                 <span className="mt-1.5 text-lg font-semibold">
-                  Jul 05 - Aug 28
+                  {formatDate(reservationDetails.checkInDate)} - {formatDate(reservationDetails.checkOutDate)}
                 </span>
               </div>
             </div>
@@ -87,32 +124,33 @@ const PayPage: FC<PayPageProps> = () => {
 
               <div className="flex flex-col">
                 <span className="text-sm text-neutral-400">Guests</span>
-                <span className="mt-1.5 text-lg font-semibold">2 Guests</span>
+                <span className="mt-1.5 text-lg font-semibold">
+                  {formatGuests(reservationDetails.adults, reservationDetails.children, reservationDetails.infants)}
+                </span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* ------------------------ */}
         <div className="space-y-6">
           <h3 className="text-2xl font-semibold">Booking Details</h3>
           <div className="flex flex-col space-y-4">
             <div className="flex text-neutral-6000 dark:text-neutral-300">
               <span className="flex-1">Booking Code</span>
               <span className="flex-1 font-medium text-neutral-900 dark:text-neutral-100">
-                #123456789
+                {reservationDetails.bookingCode}
               </span>
             </div>
             <div className="flex text-neutral-6000 dark:text-neutral-300">
               <span className="flex-1">Date</span>
               <span className="flex-1 font-medium text-neutral-900 dark:text-neutral-100">
-                05 July, 2024
+                {reservationDetails.checkInDate}
               </span>
             </div>
             <div className="flex text-neutral-6000 dark:text-neutral-300">
               <span className="flex-1">Total</span>
               <span className="flex-1 font-medium text-neutral-900 dark:text-neutral-100">
-                $199
+                ${reservationDetails.totalPrice}
               </span>
             </div>
             <div className="flex justify-between text-neutral-6000 dark:text-neutral-300">
@@ -139,4 +177,4 @@ const PayPage: FC<PayPageProps> = () => {
   );
 };
 
-export default PayPage;
+export default withReservationGuard(PayPage);

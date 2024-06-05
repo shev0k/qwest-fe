@@ -15,19 +15,43 @@ interface ModalSelectDateProps {
 const ModalSelectDate: FC<ModalSelectDateProps> = ({ renderChildren }) => {
   const [showModal, setShowModal] = useState(false);
 
-  const [startDate, setStartDate] = useState<Date | null>(
-    new Date("2024/07/05")
-  );
-  const [endDate, setEndDate] = useState<Date | null>(new Date("2024/08/28"));
+  const [startDate, setStartDate] = useState<Date | null>(null);
+  const [endDate, setEndDate] = useState<Date | null>(null);
+
+  useEffect(() => {
+    const reservationDetails = JSON.parse(
+      localStorage.getItem("reservationDetails") || "{}"
+    );
+    setStartDate(
+      reservationDetails.checkInDate
+        ? new Date(reservationDetails.checkInDate)
+        : null
+    );
+    setEndDate(
+      reservationDetails.checkOutDate
+        ? new Date(reservationDetails.checkOutDate)
+        : null
+    );
+  }, []);
 
   const onChangeDate = (dates: [Date | null, Date | null]) => {
     const [start, end] = dates;
     setStartDate(start);
     setEndDate(end);
+
+    // Save updated dates to localStorage
+    const reservationDetails = JSON.parse(
+      localStorage.getItem("reservationDetails") || "{}"
+    );
+    reservationDetails.checkInDate = start
+      ? start.toISOString().split("T")[0]
+      : null;
+    reservationDetails.checkOutDate = end
+      ? end.toISOString().split("T")[0]
+      : null;
+    localStorage.setItem("reservationDetails", JSON.stringify(reservationDetails));
   };
 
-  // FOR RESET ALL DATA WHEN CLICK CLEAR BUTTON
-  //
   function closeModal() {
     setShowModal(false);
   }
@@ -75,14 +99,14 @@ const ModalSelectDate: FC<ModalSelectDateProps> = ({ renderChildren }) => {
                       </button>
                     </div>
 
-                    <div className="flex h-screen justify-center items-center overflow-auto pt-12 p-1 bg-white dark:bg-neutral-800"> {/* Adjusted for full height and centering */}
-                      <div className="flex flex-col items-center"> {/* Centers children vertically and horizontally */}
-                        <div className="p-5"> {/* Contains the question */}
+                    <div className="flex h-screen justify-center items-center overflow-auto pt-12 p-1 bg-white dark:bg-neutral-800">
+                      <div className="flex flex-col items-center">
+                        <div className="p-5">
                           <span className="block font-semibold text-xl sm:text-2xl">
                             When&apos;s your trip?
                           </span>
                         </div>
-                        <div className="overflow-hidden rounded-3xl"> {/* Contains the DatePicker */}
+                        <div className="overflow-hidden rounded-3xl">
                           <DatePicker
                             selected={startDate}
                             onChange={onChangeDate}
@@ -114,9 +138,7 @@ const ModalSelectDate: FC<ModalSelectDateProps> = ({ renderChildren }) => {
                       </button>
                       <ButtonPrimary
                         sizeClass="px-6 py-3 !rounded-xl"
-                        onClick={() => {
-                          closeModal();
-                        }}
+                        onClick={closeModal}
                       >
                         Save
                       </ButtonPrimary>

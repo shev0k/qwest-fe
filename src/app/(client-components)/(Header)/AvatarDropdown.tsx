@@ -21,20 +21,23 @@ export default function AvatarDropdown({ className = "" }: Props) {
 
   const displayName = user?.username || user?.email.split('@')[0];
 
-
   return (
     <>
       <Popover className={`AvatarDropdown relative flex ${className}`}>
         {({ open, close }) => (
           <>
             <Popover.Button
+              id="avatar-dropdown-button"
               className={`self-center w-10 h-10 sm:w-12 sm:h-12 rounded-full text-slate-700 dark:text-slate-300 focus:outline-none flex items-center justify-center hover:bg-[rgb(202,138,4)] dark:hover:bg-[rgb(202,138,4)]`}
+              aria-label="User menu"
+              aria-expanded={open ? "true" : "false"}
+              data-headlessui-state={open ? "open" : ""}
             >
-            <Avatar
-              imgUrl={user?.avatar}
-              email={user?.email}
-              sizeClass="w-8 h-8 sm:w-9 sm:h-9"
-            />
+              <Avatar
+                imgUrl={user?.avatar}
+                email={user?.email}
+                sizeClass="w-8 h-8 sm:w-9 sm:h-9"
+              />
             </Popover.Button>
             <Transition
               as={Fragment}
@@ -49,20 +52,19 @@ export default function AvatarDropdown({ className = "" }: Props) {
                 <div className="overflow-hidden rounded-3xl shadow-lg ring-1 ring-black ring-opacity-5">
                   <div className="relative grid grid-cols-1 gap-6 bg-white dark:bg-neutral-800 py-7 px-6">
                     <div className="flex items-center space-x-3">
-                    <Avatar
+                      <Avatar
                         imgUrl={user?.avatar}
                         email={user?.email}
                         sizeClass="w-12 h-12"
                       />
                       <div className="flex-grow">
-                      <h4 className="font-semibold">{displayName || "Username"}</h4>
-                      <p className="text-xs mt-0.5">{user?.country || "No Location Set"}</p>
+                        <h4 className="font-semibold">{displayName || "Username"}</h4>
+                        <p className="text-xs mt-0.5">{user?.country || "No Location Set"}</p>
                       </div>
                     </div>
 
                     <div className="w-full border-b border-neutral-200 dark:border-neutral-700" />
 
-                    {/* ------------------ 1 --------------------- */}
                     <Link
                       href={"/account"}
                       className="flex items-center p-2 -m-3 transition duration-150 ease-in-out rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-700 focus:outline-none focus-visible:ring focus-visible:ring-orange-500 focus-visible:ring-opacity-50"

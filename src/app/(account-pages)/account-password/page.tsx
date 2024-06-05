@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/authContext";
 import Label from "@/components/Label";
 import ButtonPrimary from "@/shared/ButtonPrimary";
 import Input from "@/shared/Input";
+import Modal from "@/components/Modal"; // Adjust the import path as needed
 import { useRouter } from 'next/navigation';
 
 interface PasswordData {
@@ -14,7 +15,13 @@ const AccountPass = () => {
   const { user, updateUserDetails, loginUser, isAuthenticated } = useAuth();
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [error, setError] = useState('');
+  const [modal, setModal] = useState({
+    isOpen: false,
+    type: "message" as "message" | "confirm",
+    message: "",
+    onConfirm: () => setModal({ ...modal, isOpen: false }),
+    onCancel: () => setModal({ ...modal, isOpen: false }),
+  });
   const router = useRouter();
 
   useEffect(() => {
@@ -31,11 +38,23 @@ const AccountPass = () => {
 
   const validatePassword = () => {
     if (newPassword.length < 4) {
-      setError('Password must be at least 4 characters long.');
+      setModal({
+        isOpen: true,
+        type: "message",
+        message: "Password must be at least 4 characters long.",
+        onConfirm: () => setModal({ ...modal, isOpen: false }),
+        onCancel: () => setModal({ ...modal, isOpen: false }),
+      });
       return false;
     }
     if (newPassword !== confirmPassword) {
-      setError("Passwords do not match.");
+      setModal({
+        isOpen: true,
+        type: "message",
+        message: "Passwords do not match.",
+        onConfirm: () => setModal({ ...modal, isOpen: false }),
+        onCancel: () => setModal({ ...modal, isOpen: false }),
+      });
       return false;
     }
     return true;
@@ -44,16 +63,17 @@ const AccountPass = () => {
   const handlePasswordUpdate = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!user) {
-      setError('No user data available.');
+      setModal({
+        isOpen: true,
+        type: "message",
+        message: "No user data available.",
+        onConfirm: () => setModal({ ...modal, isOpen: false }),
+        onCancel: () => setModal({ ...modal, isOpen: false }),
+      });
       return;
     }
-    
+
     if (!validatePassword()) {
-      return;
-    }
-    
-    if (newPassword !== confirmPassword) {
-      setError("Passwords do not match.");
       return;
     }
 
@@ -63,12 +83,25 @@ const AccountPass = () => {
 
     try {
       await updateUserDetails({ ...user, ...passwordData });
-      alert('Password updated successfully.');
-      setNewPassword('');
-      setConfirmPassword('');
-      setError('');
+      setModal({
+        isOpen: true,
+        type: "message",
+        message: "Password updated successfully.",
+        onConfirm: () => {
+          setModal({ ...modal, isOpen: false });
+          setNewPassword('');
+          setConfirmPassword('');
+        },
+        onCancel: () => setModal({ ...modal, isOpen: false }),
+      });
     } catch (error: any) {
-      setError(error.message || "Failed to update password. Please try again.");
+      setModal({
+        isOpen: true,
+        type: "message",
+        message: error.message || "Failed to update password. Please try again.",
+        onConfirm: () => setModal({ ...modal, isOpen: false }),
+        onCancel: () => setModal({ ...modal, isOpen: false }),
+      });
     }
   };
 
@@ -85,11 +118,19 @@ const AccountPass = () => {
           <Label>Confirm Password</Label>
           <Input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="mt-1.5" />
         </div>
-        {error && <div className="text-red-500">{error}</div>}
         <div className="pt-2">
           <ButtonPrimary type="submit">Update Password</ButtonPrimary>
         </div>
       </form>
+      {/* Modal for messages */}
+      <Modal
+        type={modal.type}
+        message={modal.message}
+        isOpen={modal.isOpen}
+        onClose={modal.onConfirm}
+        onConfirm={modal.onConfirm}
+        onCancel={modal.onCancel}
+      />
     </div>
   );
 };

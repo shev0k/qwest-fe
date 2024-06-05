@@ -16,6 +16,7 @@ import { approveHostRole, rejectHostRole, demoteToTraveler } from "@/api/author"
 import { StayDataType, ReviewDTO, AuthorType } from "@/data/types";
 import CommentListing from "@/components/CommentListing";
 import { useAuth } from "@/contexts/authContext";
+import { useWebSocket } from '@/contexts/WebSocketContext';
 
 export interface AuthorPageProps {}
 
@@ -29,29 +30,45 @@ const AuthorPage: FC<AuthorPageProps> = ({}) => {
   const router = useRouter();
   const { authorId } = useParams();
   const { user, isAuthenticated } = useAuth();
+  const { authors, stayListings: liveStayListings, reviews: liveReviews, handleBroadcastMessage } = useWebSocket();
   const [showAllReviews, setShowAllReviews] = useState(false);
   const [showAllListings, setShowAllListings] = useState(false);
 
+
   useEffect(() => {
     if (authorId) {
-      fetchAuthorById(Number(authorId))
-        .then((data) => {
-          setAuthor(data);
-        })
-        .catch((error) => console.error("Failed to fetch author:", error));
+      const authorData = authors[Number(authorId)];
+      if (authorData) {
+        setAuthor(authorData);
+      } else {
+        fetchAuthorById(Number(authorId))
+          .then(setAuthor)
+          .catch((error) => console.error("Failed to fetch author:", error));
+      }
 
-      fetchStayListingsByAuthor(Number(authorId))
-        .then((data) => setStayListings(data))
-        .catch((error) => console.error("Failed to fetch stay listings:", error));
-  
-      fetchReviewsForAuthorStays(Number(authorId))
-        .then((data) => {
-          setReviews(data);
-          calculateRatingAndReviewCount(data);
-        })
-        .catch((error) => console.error("Failed to fetch reviews:", error));
+      const stayData = liveStayListings[Number(authorId)];
+      if (stayData) {
+        setStayListings(Object.values(liveStayListings).filter(stay => stay.authorId === Number(authorId)));
+      } else {
+        fetchStayListingsByAuthor(Number(authorId))
+          .then(setStayListings)
+          .catch((error) => console.error("Failed to fetch stay listings:", error));
+      }
+
+      const reviewData = liveReviews[Number(authorId)];
+      if (reviewData) {
+        setReviews(reviewData);
+        calculateRatingAndReviewCount(reviewData);
+      } else {
+        fetchReviewsForAuthorStays(Number(authorId))
+          .then((data) => {
+            setReviews(data);
+            calculateRatingAndReviewCount(data);
+          })
+          .catch((error) => console.error("Failed to fetch reviews:", error));
+      }
     }
-  }, [authorId]);
+  }, [authorId, authors, liveStayListings, liveReviews]);
 
   const calculateRatingAndReviewCount = (reviews: ReviewDTO[]) => {
     const totalReviews = reviews.length;
@@ -92,9 +109,6 @@ const AuthorPage: FC<AuthorPageProps> = ({}) => {
   };
 
   const renderButtonsForFounder = () => {
-    console.log("Current User Role:", user?.role); // Debug: log user role
-    console.log("Author Role:", author?.role); // Debug: log author role
-
     if (!author || user?.role !== 'FOUNDER') return null;
 
     return (

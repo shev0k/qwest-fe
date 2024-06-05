@@ -11,6 +11,8 @@ import MenuBar from "@/shared/MenuBar";
 import isInViewport from "@/utils/isInViewport";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import Avatar from "@/shared/Avatar";
+import { useAuth } from "@/contexts/authContext";
 
 let WIN_PREV_POSITION = 0;
 if (typeof window !== "undefined") {
@@ -35,11 +37,6 @@ const NAV: NavItem[] = [
     icon: HeartIcon,
   },
   {
-    name: "Log in",
-    link: "/account",
-    icon: UserCircleIcon,
-  },
-  {
     name: "Menu",
     icon: MenuBar,
   },
@@ -47,8 +44,8 @@ const NAV: NavItem[] = [
 
 const FooterNav = () => {
   const containerRef = useRef<HTMLDivElement>(null);
-
   const pathname = usePathname();
+  const { isAuthenticated, user } = useAuth();
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -64,14 +61,9 @@ const FooterNav = () => {
   };
 
   const showHideHeaderMenu = () => {
-    // if (typeof window === "undefined" || window?.innerWidth >= 768) {
-    //   return null;
-    // }
-
     let currentScrollPos = window.pageYOffset;
     if (!containerRef.current) return;
 
-    // SHOW _ HIDE MAIN MENU
     if (currentScrollPos > WIN_PREV_POSITION) {
       if (
         isInViewport(containerRef.current) &&
@@ -134,8 +126,28 @@ const FooterNav = () => {
       transition-transform duration-300 ease-in-out"
     >
       <div className="w-full max-w-lg flex justify-around mx-auto text-sm text-center ">
-        {/* MENU */}
         {NAV.map(renderItem)}
+        {isAuthenticated ? (
+          <Link
+            href="/account"
+            className="flex flex-col items-center justify-between text-neutral-500 dark:text-neutral-300/90"
+          >
+            <Avatar
+              imgUrl={user?.avatar}
+              email={user?.email}
+              sizeClass="w-8 h-8 sm:w-9 sm:h-9"
+            />
+            <span className="text-[11px] leading-none mt-1">Account</span>
+          </Link>
+        ) : (
+          <Link
+            href="/login"
+            className="flex flex-col items-center justify-between text-neutral-500 dark:text-neutral-300/90"
+          >
+            <UserCircleIcon className="w-6 h-6" />
+            <span className="text-[11px] leading-none mt-1">Log in</span>
+          </Link>
+        )}
       </div>
     </div>
   );

@@ -1,6 +1,17 @@
 import axiosInstance from './axiosConfig';
 import { ReviewDTO } from '@/data/types';
 
+
+export const fetchAllReviews = async (): Promise<ReviewDTO[]> => {
+    try {
+        const response = await axiosInstance.get<ReviewDTO[]>('/reviews/all');
+        return response.data;
+    } catch (error) {
+        console.error("Failed to fetch all reviews:", error);
+        throw error;
+    }
+};
+
 // Fetch reviews by stay listing
 export const fetchReviewsByStayListing = async (stayListingId: number): Promise<ReviewDTO[]> => {
     try {
