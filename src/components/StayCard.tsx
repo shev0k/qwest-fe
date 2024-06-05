@@ -2,30 +2,34 @@ import React, { FC } from "react";
 import { StayDataType } from "@/data/types";
 import StartRating from "@/components/StartRating";
 import BtnLikeIcon from "@/components/BtnLikeIcon";
-import SaleOffBadge from "@/components/SaleOffBadge";
 import Badge from "@/shared/Badge";
+import { PathName } from "@/routers/types";  
 import Link from "next/link";
 import GallerySlider from "./GallerySlider";
+import DeleteButton from "@/components/DeleteButton";
 
 export interface StayCardProps {
   className?: string;
   data: StayDataType;
-  showLikeButton?: boolean; 
+  showLikeButton?: boolean;
   isLinkActive?: boolean;
   size?: "default" | "small";
+  badge?: string;
+  onDelete?: () => void; // Optional delete button handler
 }
-
 
 const StayCard: FC<StayCardProps> = ({
   size = "default",
   className = "",
   data,
-  showLikeButton = true, 
+  showLikeButton = true,
   isLinkActive = true,
+  badge,
+  onDelete,
 }) => {
   const {
     galleryImageUrls,
-    rentalFormType,
+    propertyType,
     street,
     title,
     bedrooms,
@@ -40,12 +44,13 @@ const StayCard: FC<StayCardProps> = ({
     return (
       <div className="relative w-full">
         <GallerySlider
-          uniqueID={`StayCard_${id}`}
-          ratioClass="aspect-w-4 aspect-h-3 "
+          uniqueID={`StayCard2_${id}`}
+          ratioClass="aspect-w-12 aspect-h-11"
           galleryImageUrls={galleryImageUrls}
-          galleryClass={size === "default" ? undefined : ""}
+          imageClass="rounded-lg"
+          href={`/listing-stay-detail/${id}` as PathName}
         />
-        {showLikeButton && <BtnLikeIcon isLiked={like} className="absolute right-3 top-3 z-[1]" />}
+        {showLikeButton && <BtnLikeIcon listingId={id} isLiked={like} className="absolute right-3 top-3 z-[1]" />}
       </div>
     );
   };
@@ -55,7 +60,7 @@ const StayCard: FC<StayCardProps> = ({
       <div className={size === "default" ? "p-4 space-y-4" : "p-3 space-y-1"}>
         <div className={size === "default" ? "space-y-2" : "space-y-1"}>
           <span className="text-sm text-neutral-500 dark:text-neutral-400">
-            {rentalFormType} · {bedrooms} beds
+            {propertyType} · {bedrooms} beds
           </span>
           <div className="flex items-center space-x-2">
             <h2
@@ -94,7 +99,7 @@ const StayCard: FC<StayCardProps> = ({
         <div className="w-14 border-b border-neutral-100 dark:border-neutral-800"></div>
         <div className="flex justify-between items-center">
           <span className="text-base font-semibold">
-            {weekdayPrice}
+            ${weekdayPrice}
             {` `}
             {size === "default" && (
               <span className="text-sm text-neutral-500 dark:text-neutral-400 font-normal">
@@ -120,7 +125,17 @@ const StayCard: FC<StayCardProps> = ({
       data-nc-id="StayCard"
     >
       {renderSliderGallery()}
-      {isLinkActive ? <Link href="/listing-stay-detail">{renderContent()}</Link> : renderContent()}
+      {isLinkActive ? <Link href={`/listing-stay-detail/${id}`}>{renderContent()}</Link> : renderContent()}
+      {badge && (
+        <div className="absolute bottom-[16px] right-[15px]">
+          <Badge name={badge} color="red" />
+        </div>
+      )}
+      {onDelete && (
+        <div className="absolute bottom-[17px] right-4">
+          <DeleteButton onClick={onDelete}>Cancel</DeleteButton>
+        </div>
+      )}
     </div>
   );
 };

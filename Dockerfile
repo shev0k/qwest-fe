@@ -1,11 +1,10 @@
 # Use the official lightweight Node.js 18 image.
-# https://hub.docker.com/_/node
 FROM node:18-alpine
 
 # Set the working directory in the container
 WORKDIR /app
 
-# Copy package.json and package-lock.json to work directory
+# Copy package.json and package-lock.json to the work directory
 COPY package*.json ./
 
 # Install dependencies

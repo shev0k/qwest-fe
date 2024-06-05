@@ -1,7 +1,7 @@
 "use client";
-
-import React, { FC, useState } from "react";
+import React, { FC, useState, useEffect } from "react";
 import StaySearchForm from "./(stay-search-form)/StaySearchForm";
+import { GuestsObject } from "./GuestsInput";
 
 export type SearchTab = "Stays";
 
@@ -9,15 +9,33 @@ export interface HeroSearchFormProps {
   className?: string;
   currentTab?: SearchTab;
   currentPage?: "Stays";
+  onSearch?: (location: string, dates: [Date | null, Date | null], guests: GuestsObject) => void;
+  initialLocation?: string;
+  initialDates?: [Date | null, Date | null];
+  initialGuests?: GuestsObject;
 }
 
 const HeroSearchForm: FC<HeroSearchFormProps> = ({
   className = "",
   currentTab = "Stays",
   currentPage,
+  onSearch,
+  initialLocation = "",
+  initialDates = [null, null],
+  initialGuests = { guestAdults: 1, guestChildren: 0, guestInfants: 0 },
 }) => {
   const tabs: SearchTab[] = ["Stays"];
   const [tabActive, setTabActive] = useState<SearchTab>(currentTab);
+
+  useEffect(() => {
+    if (initialLocation || initialDates[0] || initialGuests.guestAdults !== 1 || initialGuests.guestChildren !== 0 || initialGuests.guestInfants !== 0) {
+      onSearch && onSearch(initialLocation, initialDates, initialGuests);
+    }
+  }, []); // Empty dependency array to run only once on mount
+
+  const handleTabClick = (tab: SearchTab) => {
+    setTabActive(tab);
+  };
 
   const renderTab = () => {
     return (
@@ -26,12 +44,8 @@ const HeroSearchForm: FC<HeroSearchFormProps> = ({
           const active = tab === tabActive;
           return (
             <li
-              onClick={() => setTabActive(tab)}
-              className={`flex-shrink-0 flex items-center cursor-pointer text-sm lg:text-base font-medium ${
-                active
-                  ? ""
-                  : "text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-400"
-              } `}
+              onClick={() => handleTabClick(tab)}
+              className={`flex-shrink-0 flex items-center cursor-pointer text-sm lg:text-base font-medium ${active ? "" : "text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-400"}`}
               key={tab}
             >
               {active && (
@@ -48,16 +62,14 @@ const HeroSearchForm: FC<HeroSearchFormProps> = ({
   const renderForm = () => {
     switch (tabActive) {
       case "Stays":
-        return <StaySearchForm />;
+        return <StaySearchForm onSearch={onSearch} initialLocation={initialLocation} initialDates={initialDates} initialGuests={initialGuests} />;
       default:
         return null;
     }
   };
 
   return (
-    <div
-      className={`nc-HeroSearchForm w-full max-w-6xl py-5 lg:py-0 ${className}`}
-    >
+    <div className={`nc-HeroSearchForm w-full max-w-6xl py-5 lg:py-0 ${className}`}>
       {renderTab()}
       {renderForm()}
     </div>

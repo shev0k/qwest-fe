@@ -1,5 +1,6 @@
-'use client'
-import React, { useState, FC } from "react";
+'use client';
+
+import React, { useState, FC, useEffect } from "react";
 import { useRouter } from 'next/navigation';
 import Link from "next/link";
 import { login } from "@/api/authService";
@@ -7,19 +8,31 @@ import { useAuth } from '@/contexts/authContext';
 
 import Input from "@/shared/Input";
 import ButtonPrimary from "@/shared/ButtonPrimary";
+import Modal from "@/components/Modal";  // Adjust the import path as needed
 
 export interface PageLoginProps {}
 
 const PageLogin: FC<PageLoginProps> = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const { loginUser } = useAuth();
+  const [modal, setModal] = useState({
+    isOpen: false,
+    type: "message" as "message" | "confirm",
+    message: "",
+    onConfirm: () => {},
+    onCancel: () => {},
+  });
+  const { loginUser, isAuthenticated } = useAuth();
   const router = useRouter();
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.push('/');
+    }
+  }, [isAuthenticated, router]);
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setError(null);
     try {
       const response = await login({ email, password });
       if (response.jwt) {
@@ -28,20 +41,45 @@ const PageLogin: FC<PageLoginProps> = () => {
           username: response.username || email.split('@')[0],
           avatar: response.avatar || "",
           country: response.country || "",
+          wishlistIds: response.wishlistIds || [],
           token: response.jwt
         });
         router.push('/');
       } else {
-        setError("Authentication token not received.");
+        setModal({
+          isOpen: true,
+          type: "message",
+          message: "Authentication token not received.",
+          onConfirm: () => setModal({ ...modal, isOpen: false }),
+          onCancel: () => setModal({ ...modal, isOpen: false }),
+        });
       }
-    } catch (error) {
-      const errMsg = error instanceof Error ? error.message : "Login failed due to an unexpected issue.";
-      setError(errMsg);
+    } catch (error: any) {
+      let errMsg = "Login failed due to an unexpected issue.";
+      if (error.response) {
+        switch (error.response.status) {
+          case 401:
+            errMsg = "Invalid credentials or user does not exist.";
+            break;
+          case 403:
+            errMsg = "You are not authorized to perform this action.";
+            break;
+          case 500:
+            errMsg = "Server error. The entity you are trying to access may not exist.";
+            break;
+        }
+      }
+
+      setModal({
+        isOpen: true,
+        type: "message",
+        message: errMsg,
+        onConfirm: () => setModal({ ...modal, isOpen: false }),
+        onCancel: () => setModal({ ...modal, isOpen: false }),
+      });
     }
   };
 
-
-  
   return (
     <div className={`nc-PageLogin`}>
       <div className="container mb-24 lg:mb-32">
@@ -73,7 +111,7 @@ const PageLogin: FC<PageLoginProps> = () => {
             <label className="block">
               <span className="flex justify-between items-center text-neutral-800 dark:text-neutral-200">
                 Password
-                <Link href="/login" className="text-sm underline font-medium">
+                <Link href="/forgot" className="text-sm underline font-medium">
                   Forgot Password?
                 </Link>
               </span>
@@ -87,7 +125,15 @@ const PageLogin: FC<PageLoginProps> = () => {
             </label>
             <ButtonPrimary type="submit">Continue</ButtonPrimary>
           </form>
-          {error && <div className="text-red-500 text-center mt-4">{error}</div>}
+          {/* Modal for error messages */}
+          <Modal
+            type={modal.type}
+            message={modal.message}
+            isOpen={modal.isOpen}
+            onClose={modal.onConfirm}
+            onConfirm={modal.onConfirm}
+            onCancel={modal.onCancel}
+          />
           {/* ==== */}
           <span className="block text-center text-neutral-700 dark:text-neutral-300">
             New User? {` `}

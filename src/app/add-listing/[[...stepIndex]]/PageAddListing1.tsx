@@ -4,6 +4,7 @@ import { debounce } from 'lodash';
 import Input from "@/shared/Input";
 import Select from "@/shared/Select";
 import FormItem from "../FormItem";
+import Modal from "@/components/Modal"; // Adjust the import path as needed
 import { useListingForm } from '@/contexts/ListingFormContext';
 
 export interface PageAddListing1Props {}
@@ -12,25 +13,27 @@ const PageAddListing1: FC<PageAddListing1Props> = () => {
     const { listingData, updateListingData, setFormValid } = useListingForm();
     const [propertyTypeDesc, setPropertyTypeDesc] = useState("");
     const [rentalFormDesc, setRentalFormDesc] = useState("");
-    const [titleError, setTitleError] = useState("");
-    const [propertyTypeError, setPropertyTypeError] = useState("");
-    const [rentalFormTypeError, setRentalFormTypeError] = useState("");
-
+    const [modal, setModal] = useState({
+        isOpen: false,
+        type: "message" as "message" | "confirm",
+        message: "",
+        onConfirm: () => setModal({ ...modal, isOpen: false }),
+        onCancel: () => setModal({ ...modal, isOpen: false }),
+    });
 
     useEffect(() => {
+        const isValid = Boolean(listingData.title && listingData.title.trim() !== '') &&
+                        Boolean(listingData.propertyType && listingData.propertyType.trim() !== '') &&
+                        Boolean(listingData.rentalFormType && listingData.rentalFormType.trim() !== '');
+        setFormValid(isValid);
+        console.log("Form Validation State:", isValid);
 
-      const isValid = Boolean(listingData.title && listingData.title.trim() !== '') &&
-                      Boolean(listingData.propertyType && listingData.propertyType.trim() !== '') &&
-                      Boolean(listingData.rentalFormType && listingData.rentalFormType.trim() !== '');
-      setFormValid(isValid);
-      console.log("Form Validation State:", isValid);
-  
-      const logData = debounce(() => {
-          console.log("Current Listing Data:", listingData);
-      }, 500);
-      logData();
-      return () => logData.cancel();
-  }, [listingData, setFormValid]);
+        const logData = debounce(() => {
+            console.log("Current Listing Data:", listingData);
+        }, 500);
+        logData();
+        return () => logData.cancel();
+    }, [listingData, setFormValid]);
 
     const propertyDescriptions: { [key: string]: string } = {
         APARTMENT: "A self-contained unit in a larger building, offering urban living spaces.",
@@ -51,34 +54,40 @@ const PageAddListing1: FC<PageAddListing1Props> = () => {
         SHARED_ROOM: "Share a room or common space with other guests, offering a more communal and budget-friendly option."
     };
 
-
-
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      const { name, value } = e.target;
-      if (!value) {
-          setTitleError("Title cannot be left blank.");
-      } else {
-          setTitleError("");
-      }
-      updateListingData({ [name]: value });
+        const { name, value } = e.target;
+        if (!value) {
+            setModal({
+                isOpen: true,
+                type: "message",
+                message: "The stay's name cannot be left blank.",
+                onConfirm: () => setModal({ ...modal, isOpen: false }),
+                onCancel: () => setModal({ ...modal, isOpen: false }),
+            });
+        }
+        updateListingData({ [name]: value });
     };
 
     const handleChange = (setter: React.Dispatch<React.SetStateAction<string>>, setError: React.Dispatch<React.SetStateAction<string>>, dataMap: { [key: string]: string }) => (e: React.ChangeEvent<HTMLSelectElement>) => {
-      const { value } = e.target;
-      if (!value) {
-          setError("Please select an option.");
-          setter("");
-      } else {
-          setError("");
-          setter(dataMap[value] || "");
-      }
-      updateListingData({ [e.target.name]: value });
-  };
+        const { value } = e.target;
+        if (!value) {
+            setModal({
+                isOpen: true,
+                type: "message",
+                message: "Please select an option.",
+                onConfirm: () => setModal({ ...modal, isOpen: false }),
+                onCancel: () => setModal({ ...modal, isOpen: false }),
+            });
+            setter("");
+        } else {
+            setModal({ ...modal, isOpen: false });
+            setter(dataMap[value] || "");
+        }
+        updateListingData({ [e.target.name]: value });
+    };
 
-  const handlePropertyTypeChange = handleChange(setPropertyTypeDesc, setPropertyTypeError, propertyDescriptions);
-  const handleRentalFormChange = handleChange(setRentalFormDesc, setRentalFormTypeError, rentalFormDescriptions);
-
-
+    const handlePropertyTypeChange = handleChange(setPropertyTypeDesc, () => {}, propertyDescriptions);
+    const handleRentalFormChange = handleChange(setRentalFormDesc, () => {}, rentalFormDescriptions);
 
     return (
         <>
@@ -88,7 +97,6 @@ const PageAddListing1: FC<PageAddListing1Props> = () => {
                 <FormItem
                     label="Property Type"
                     desc={propertyTypeDesc || "Select the type of property to list."}
-                    error={propertyTypeError}
                 >
                     <Select name="propertyType" value={listingData.propertyType || ''} onChange={handlePropertyTypeChange}>
                         <option value="">Select Property Type</option>
@@ -106,14 +114,12 @@ const PageAddListing1: FC<PageAddListing1Props> = () => {
                 <FormItem
                     label="Stay's Name"
                     desc="Ex. craft a memorable name by combining: Property Type + Unique Feature + Location."
-                    error={titleError}
                 >
                     <Input name="title" value={listingData.title || ''} placeholder="Stay's Name..." onChange={handleInputChange} />
                 </FormItem>
                 <FormItem
                     label="Rental Form"
                     desc={rentalFormDesc || "Choose the rental form that best describes your offering."}
-                    error={rentalFormTypeError}
                 >
                     <Select name="rentalFormType" value={listingData.rentalFormType || ''} onChange={handleRentalFormChange}>
                         <option value="">Select Rental Form</option>
@@ -124,6 +130,15 @@ const PageAddListing1: FC<PageAddListing1Props> = () => {
                     </Select>
                 </FormItem>
             </div>
+            {/* Modal for messages */}
+            <Modal
+                type={modal.type}
+                message={modal.message}
+                isOpen={modal.isOpen}
+                onClose={modal.onConfirm}
+                onConfirm={modal.onConfirm}
+                onCancel={modal.onCancel}
+            />
         </>
     );
 };

@@ -143,7 +143,6 @@ const ListingImageGallery: FC<Props> = ({
               >
                 <ArrowSmallLeftIcon className="w-6 h-6" />
               </button>
-              <LikeSaveBtns />
             </div>
 
             <div className="flex min-h-full items-center justify-center sm:p-4 pt-0 text-center">

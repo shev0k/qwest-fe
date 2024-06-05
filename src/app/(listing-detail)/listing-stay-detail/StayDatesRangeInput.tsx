@@ -1,6 +1,6 @@
 "use client";
 
-import React, { Fragment, useState, FC } from "react";
+import React, { Fragment, useState, useEffect, FC } from "react";
 import { Popover, Transition } from "@headlessui/react";
 import { CalendarIcon } from "@heroicons/react/24/outline";
 import DatePickerCustomHeaderTwoMonth from "@/components/DatePickerCustomHeaderTwoMonth";
@@ -10,50 +10,62 @@ import ClearDataButton from "@/app/(client-components)/(HeroSearchForm)/ClearDat
 
 export interface StayDatesRangeInputProps {
   className?: string;
+  onChange?: (dates: [Date | null, Date | null]) => void;
+  value?: [Date | null, Date | null];
 }
 
 const StayDatesRangeInput: FC<StayDatesRangeInputProps> = ({
   className = "flex-1",
+  onChange,
+  value = [null, null],
 }) => {
-  const [startDate, setStartDate] = useState<Date | null>(
-    new Date("2024/07/05")
-  );
-  const [endDate, setEndDate] = useState<Date | null>(new Date("2024/08/28"));
-  //
+  const [startDate, setStartDate] = useState<Date | null>(null);
+  const [endDate, setEndDate] = useState<Date | null>(null);
+
+  // Adjust the date to UTC midnight to avoid timezone issues
+  const adjustDateToUTC = (date: Date | null) => {
+    return date ? new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate())) : null;
+  };
+
+  useEffect(() => {
+    setStartDate(adjustDateToUTC(value[0]));
+    setEndDate(adjustDateToUTC(value[1]));
+  }, [value]);
 
   const onChangeDate = (dates: [Date | null, Date | null]) => {
     const [start, end] = dates;
-    setStartDate(start);
-    setEndDate(end);
+    const adjustedStart = adjustDateToUTC(start);
+    const adjustedEnd = adjustDateToUTC(end);
+  
+    // Ensure the dates are not the same and that start is before end
+    if (adjustedStart && adjustedEnd && adjustedStart.getTime() === adjustedEnd.getTime()) {
+      onChange && onChange([adjustedStart, null]); // Deselect end date
+    } else {
+      setStartDate(adjustedStart);
+      setEndDate(adjustedEnd);
+      onChange && onChange([adjustedStart, adjustedEnd]);
+    }
   };
 
-  const renderInput = () => {
-    return (
-      <>
-        <div className="color-yellow-accent dark:color-yellow-accent">
-          <CalendarIcon className="w-5 h-5 lg:w-7 lg:h-7" />
-        </div>
-        <div className="flex-grow text-left">
-          <span className="block xl:text-lg font-semibold">
-            {startDate?.toLocaleDateString("en-US", {
-              month: "short",
-              day: "2-digit",
-            }) || "Add Dates"}
-            {endDate
-              ? " - " +
-                endDate?.toLocaleDateString("en-US", {
-                  month: "short",
-                  day: "2-digit",
-                })
-              : ""}
-          </span>
-          <span className="block mt-1 text-sm text-neutral-400 leading-none font-light">
-            {"Check-in > Check-out"}
-          </span>
-        </div>
-      </>
-    );
+  const formatDate = (date: Date | null) => {
+    return date ? `${date.toLocaleDateString("en-US", { month: "short", day: "2-digit" })}` : "";
   };
+
+  const renderInput = () => (
+    <>
+      <div className="color-yellow-accent dark:color-yellow-accent">
+        <CalendarIcon className="w-5 h-5 lg:w-7 lg:h-7" />
+      </div>
+      <div className="flex-grow text-left">
+        <span className="block xl:text-lg font-semibold">
+          {startDate ? formatDate(startDate) : "Add Dates"}{endDate ? " - " + formatDate(endDate) : ""}
+        </span>
+        <span className="block mt-1 text-sm text-neutral-400 leading-none font-light">
+        {"Check-in > Check-out"}
+        </span>
+      </div>
+    </>
+  );
 
   return (
     <Popover className={`StayDatesRangeInput z-10 relative flex ${className}`}>

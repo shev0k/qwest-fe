@@ -6,9 +6,11 @@ import Avatar from "@/shared/Avatar";
 import ButtonPrimary from "@/shared/ButtonPrimary";
 import Input from "@/shared/Input";
 import Textarea from "@/shared/Textarea";
+import Modal from "@/components/Modal"; // Adjust the import path as needed
+import { useRouter } from 'next/navigation';
 
 const AccountPage = () => {
-  const { user, updateUserDetails, updateUserAvatar } = useAuth();
+  const { user, updateUserDetails, updateUserAvatar, isAuthenticated, loginUser } = useAuth();
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -20,10 +22,32 @@ const AccountPage = () => {
   });
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
-  const [error, setError] = useState("");
+  const [modal, setModal] = useState({
+    isOpen: false,
+    type: "message" as "message" | "confirm",
+    message: "",
+    onConfirm: () => {},
+    onCancel: () => {},
+  });
+  const router = useRouter();
 
   useEffect(() => {
-    if (user) {
+    const storedUserData = sessionStorage.getItem('user');
+    const storedToken = sessionStorage.getItem('token');
+
+    if (storedUserData && storedToken) {
+      const userData = JSON.parse(storedUserData);
+      loginUser(userData);
+    } else {
+      router.push('/login');
+    }
+  }, [router]);
+
+  useEffect(() => {
+    const storedFormData = sessionStorage.getItem('formData');
+    if (storedFormData) {
+      setFormData(JSON.parse(storedFormData));
+    } else if (user) {
       setFormData({
         firstName: user.firstName || '',
         lastName: user.lastName || '',
@@ -33,20 +57,65 @@ const AccountPage = () => {
         phoneNumber: user.phoneNumber || '',
         description: user.description || '',
       });
-      setAvatarPreview(null);
     }
+    setAvatarPreview(null);
+
+    const handleBeforeUnload = () => {
+      sessionStorage.removeItem('formData');
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      sessionStorage.removeItem('formData');
+    };
   }, [user]);
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files.length > 0) {
       const file = event.target.files[0];
       if (/^image\/(jpeg|png|gif|jpg)$/.test(file.type)) {
         setAvatarFile(file);
         setAvatarPreview(URL.createObjectURL(file));
+
+        // Persist form data before uploading avatar
+        sessionStorage.setItem('formData', JSON.stringify(formData));
+
+        // Trigger avatar upload
+        try {
+          await updateUserAvatar(user!.id, file);
+          setModal({
+            isOpen: true,
+            type: "message",
+            message: "Avatar updated successfully.",
+            onConfirm: () => {
+              setModal({ ...modal, isOpen: false });
+              window.location.reload();
+            },
+            onCancel: () => setModal({ ...modal, isOpen: false }),
+          });
+          setAvatarFile(null);
+        } catch (error) {
+          console.error("Avatar update error:", error);
+          setModal({
+            isOpen: true,
+            type: "message",
+            message: "Failed to update avatar. Please try again.",
+            onConfirm: () => setModal({ ...modal, isOpen: false }),
+            onCancel: () => setModal({ ...modal, isOpen: false }),
+          });
+        }
       } else {
         setAvatarFile(null);
         setAvatarPreview(null);
-        setError('Please upload a valid image file (PNG, JPEG, JPG, GIF).');
+        setModal({
+          isOpen: true,
+          type: "message",
+          message: "Please upload a valid image file (PNG, JPEG, JPG, GIF).",
+          onConfirm: () => setModal({ ...modal, isOpen: false }),
+          onCancel: () => setModal({ ...modal, isOpen: false }),
+        });
       }
     } else {
       setAvatarFile(null);
@@ -56,11 +125,23 @@ const AccountPage = () => {
 
   const validateForm = () => {
     if (!formData.email || !/\S+@\S+\.\S+/.test(formData.email)) {
-      setError('Please enter a valid email address.');
+      setModal({
+        isOpen: true,
+        type: "message",
+        message: "Please enter a valid email address.",
+        onConfirm: () => setModal({ ...modal, isOpen: false }),
+        onCancel: () => setModal({ ...modal, isOpen: false }),
+      });
       return false;
     }
     if (formData.phoneNumber && !/^\d{10}$/.test(formData.phoneNumber)) {
-      setError('Phone number must be 10 digits.');
+      setModal({
+        isOpen: true,
+        type: "message",
+        message: "Phone number must be 10 digits.",
+        onConfirm: () => setModal({ ...modal, isOpen: false }),
+        onCancel: () => setModal({ ...modal, isOpen: false }),
+      });
       return false;
     }
     return true;
@@ -68,15 +149,24 @@ const AccountPage = () => {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData(prev => {
+      const newFormData = { ...prev, [name]: value };
+      sessionStorage.setItem('formData', JSON.stringify(newFormData));
+      return newFormData;
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setError("");
 
-    if (!user || !user.token) {
-      setError('User data is incomplete. Unable to update profile.');
+    if (!user) {
+      setModal({
+        isOpen: true,
+        type: "message",
+        message: "User data is incomplete. Unable to update profile.",
+        onConfirm: () => setModal({ ...modal, isOpen: false }),
+        onCancel: () => setModal({ ...modal, isOpen: false }),
+      });
       return;
     }
 
@@ -85,18 +175,26 @@ const AccountPage = () => {
     }
 
     try {
-      if (Object.values(formData).some(value => value)) {
-        await updateUserDetails({ ...user, ...formData });
-      }
+      // Update user details
+      await updateUserDetails({ ...user, ...formData });
 
-      if (avatarFile) {
-        await updateUserAvatar(user.id, avatarFile, user.token);
-      }
-
-      alert('Profile updated successfully.');
+      setModal({
+        isOpen: true,
+        type: "message",
+        message: "Profile updated successfully.",
+        onConfirm: () => setModal({ ...modal, isOpen: false }),
+        onCancel: () => setModal({ ...modal, isOpen: false }),
+      });
+      sessionStorage.removeItem('formData'); // Clear session storage after successful update
     } catch (error) {
       console.error("Update error:", error);
-      setError("Failed to update profile. Please try again.");
+      setModal({
+        isOpen: true,
+        type: "message",
+        message: "Failed to update profile. Please try again.",
+        onConfirm: () => setModal({ ...modal, isOpen: false }),
+        onCancel: () => setModal({ ...modal, isOpen: false }),
+      });
     }
   };
 
@@ -159,12 +257,20 @@ const AccountPage = () => {
             <Label htmlFor="description">About you</Label>
             <Textarea id="description" name="description" className="mt-1.5" value={formData.description} onChange={handleChange} />
           </div>
-          {error && <div className="text-red-500 mt-4">{error}</div>}
           <div className="pt-2">
             <ButtonPrimary>Save Changes</ButtonPrimary>
           </div>
         </div>
       </form>
+      {/* Modal for messages */}
+      <Modal
+        type={modal.type}
+        message={modal.message}
+        isOpen={modal.isOpen}
+        onClose={modal.onConfirm}
+        onConfirm={modal.onConfirm}
+        onCancel={modal.onCancel}
+      />
     </div>
   );
 };

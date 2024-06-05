@@ -114,3 +114,27 @@ p::selection {
   --tw-bg-opacity: 1;
   background-color: rgba(234, 179, 8, 0.11) !important;
 }
+
+:is(.dark .dark\:border-slate-700) {
+  --tw-border-opacity: 1;
+  border-color: rgb(89, 89, 89)!important;
+}
+
+.rc-slider-track, .rc-slider-tracks {
+  background-color: #eab308!important;
+}
+
+.rc-slider-handle {
+  border: solid 2px #eab308!important;
+}
+
+.rc-slider-handle-dragging.rc-slider-handle-dragging.rc-slider-handle-dragging {
+  border-color: #eab308!important;
+  box-shadow: 0 0 0 5px #eab308!important;
+}
+
+.custom-dark-color{
+  --tw-bg-opacity: 1;
+  color: #eab308!important;
+  background-color: #eab308!important;
+}

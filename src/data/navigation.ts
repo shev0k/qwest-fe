@@ -1,10 +1,8 @@
 import { MegamenuItem, NavItemType } from "@/shared/Navigation/NavigationItem";
 import ncNanoId from "@/utils/ncNanoId";
 import { Route } from "@/routers/types";
+import { useAuth } from "@/contexts/authContext";  // Import useAuth hook
 import __megamenu from "./jsons/__megamenu.json";
-
-
-
 
 const otherPageChildMenus: NavItemType[] = [
   { id: ncNanoId(), href: "/about", name: "About" },
@@ -72,10 +70,8 @@ const templatesChildrenMenus: NavItemType[] = [
       },
     ],
   },
-  //
   { id: ncNanoId(), href: "/checkout", name: "Checkout" },
   { id: ncNanoId(), href: "/pay-done", name: "Successful Payment" },
-  //
   { id: ncNanoId(), href: "/author", name: "Author Page" },
   { id: ncNanoId(), href: "/account", name: "Account Page" },
 ];
@@ -100,15 +96,8 @@ export const NAVIGATION_DEMO: NavItemType[] = [
         type: "dropdown",
         children: [
           { id: ncNanoId(), href: "/listing-stay", name: "Stay Search" },
-          {
-            id: ncNanoId(),
-            href: "/listing-stay-map",
-            name: "Stay Search (map)",
-          },
-          { id: ncNanoId(), href: "/listing-stay-detail", name: "Stay Details" },
         ],
       },
-
     ],
   },
   {
@@ -118,7 +107,6 @@ export const NAVIGATION_DEMO: NavItemType[] = [
     type: "dropdown",
     children: templatesChildrenMenus,
   },
-
   {
     id: ncNanoId(),
     href: "/",
@@ -134,29 +122,16 @@ export const NAVIGATION_DEMO_2: NavItemType[] = [
     href: "/",
     name: "Main",
     isNew: false,
-    children:[
-      { id: ncNanoId(), href: "/", name: "Home Page" },
-    ]
+    children: [{ id: ncNanoId(), href: "/", name: "Home Page" }],
   },
-
-  //
   {
     id: ncNanoId(),
     href: "/",
     name: "Explore",
     children: [
       { id: ncNanoId(), href: "/listing-stay", name: "Stays" },
-      {
-        id: ncNanoId(),
-        href: "/listing-stay-map",
-        name: "Stays (map)",
-      },
-      { id: ncNanoId(), href: "/listing-stay-detail", name: "Stay Details" },
-
     ],
   },
-
-  //
   {
     id: ncNanoId(),
     href: "/author",
@@ -164,8 +139,6 @@ export const NAVIGATION_DEMO_2: NavItemType[] = [
     type: "dropdown",
     children: templatesChildrenMenus,
   },
-
-  //
   {
     id: ncNanoId(),
     href: "/",

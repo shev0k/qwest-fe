@@ -1,7 +1,7 @@
 "use client";
 
 import React, { FC, useEffect, useState } from "react";
-import { TaxonomyType } from "@/data/types";
+import { TaxonomyType, StayDataType } from "@/data/types";
 import CardCategory3 from "@/components/CardCategory3";
 import CardCategory4 from "@/components/CardCategory4";
 import CardCategory5 from "@/components/CardCategory5";
@@ -12,88 +12,103 @@ import PrevBtn from "./PrevBtn";
 import NextBtn from "./NextBtn";
 import { variants } from "@/utils/animationVariants";
 import { useWindowSize } from "react-use";
+import { useSearchParams } from "next/navigation";
+import { fetchStayListingsWithQuery } from "@/api/stayListingsService";
 
-export interface SectionSliderNewCategoriesProps {
+export interface SectionSliderTypesOfStayProps {
   className?: string;
   itemClassName?: string;
   heading?: string;
   subHeading?: string;
-  categories?: TaxonomyType[];
   categoryCardType?: "card3" | "card4" | "card5";
   itemPerRow?: 4 | 5;
   sliderStyle?: "style1" | "style2";
+  onTypeOfStayClick?: (typeOfStay: string) => void;
 }
 
-const DEMO_CATS: TaxonomyType[] = [
+const DEMO_CATS: Omit<TaxonomyType, "count">[] = [
   {
     id: "1",
-    href: "/listing-stay-map",
-    name: "Entire Stay",
+    name: "Entire Place",
     taxonomy: "category",
-    count: 7,
+    href: "/listing-stay?typeOfStay=ENTIRE_PLACE",
     thumbnail:
       "https://images.pexels.com/photos/2351649/pexels-photo-2351649.jpeg?auto=compress&cs=tinysrgb&dpr=3&h=750&w=1260",
   },
   {
     id: "2",
-    href: "/listing-stay-map",
     name: "Private Room",
     taxonomy: "category",
-    count: 3,
+    href: "/listing-stay?typeOfStay=PRIVATE_ROOM",
     thumbnail:
       "https://images.pexels.com/photos/2030119/pexels-photo-2030119.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=750&w=1260",
   },
   {
     id: "3",
-    href: "/listing-stay-map",
     name: "Hotel Room",
     taxonomy: "category",
-    count: 5,
+    href: "/listing-stay?typeOfStay=HOTEL_ROOM",
     thumbnail:
       "https://images.pexels.com/photos/277572/pexels-photo-277572.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=750&w=1260",
   },
   {
     id: "4",
-    href: "/listing-stay-map",
     name: "Shared Room",
     taxonomy: "category",
-    count: 3,
+    href: "/listing-stay?typeOfStay=SHARED_ROOM",
     thumbnail:
       "https://images.pexels.com/photos/7128775/pexels-photo-7128775.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=750&w=1260",
   },
 ];
 
-const SectionSliderNewCategories: FC<SectionSliderNewCategoriesProps> = ({
-  heading = "Discover New Places",
-  subHeading = "Recommended Destinations for You",
+const SectionSliderTypesOfStay: FC<SectionSliderTypesOfStayProps> = ({
+  heading = "Types of Stays",
+  subHeading = "Explore stays based on type",
   className = "",
   itemClassName = "",
-  categories = DEMO_CATS,
   itemPerRow = 4,
   categoryCardType = "card3",
   sliderStyle = "style1",
+  onTypeOfStayClick,
 }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [direction, setDirection] = useState(0);
-  const [numberOfItems, setNumberOfitem] = useState(0);
-
+  const [numberOfItems, setNumberOfItems] = useState(0);
+  const [categories, setCategories] = useState<TaxonomyType[]>([]);
+  const searchParams = useSearchParams();
   const windowWidth = useWindowSize().width;
+
   useEffect(() => {
     if (windowWidth < 320) {
-      return setNumberOfitem(1);
+      setNumberOfItems(1);
+    } else if (windowWidth < 500) {
+      setNumberOfItems(itemPerRow - 3);
+    } else if (windowWidth < 1024) {
+      setNumberOfItems(itemPerRow - 2);
+    } else if (windowWidth < 1280) {
+      setNumberOfItems(itemPerRow - 1);
+    } else {
+      setNumberOfItems(itemPerRow);
     }
-    if (windowWidth < 500) {
-      return setNumberOfitem(itemPerRow - 3);
-    }
-    if (windowWidth < 1024) {
-      return setNumberOfitem(itemPerRow - 2);
-    }
-    if (windowWidth < 1280) {
-      return setNumberOfitem(itemPerRow - 1);
-    }
-
-    setNumberOfitem(itemPerRow);
   }, [itemPerRow, windowWidth]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // Fetch all stays without any filters to get total count for each category
+        const stays = await fetchStayListingsWithQuery("");
+        const categoriesWithCounts = DEMO_CATS.map((category) => ({
+          ...category,
+          count: stays.filter((stay) => stay.rentalFormType === category.href?.split("=")[1]).length,
+        }));
+        setCategories(categoriesWithCounts);
+      } catch (error) {
+        console.error("Error fetching stays:", error);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   function changeItemId(newVal: number) {
     if (newVal > currentIndex) {
@@ -119,22 +134,22 @@ const SectionSliderNewCategories: FC<SectionSliderNewCategoriesProps> = ({
   });
 
   const renderCard = (item: TaxonomyType) => {
-    switch (categoryCardType) {
-      case "card3":
-        return <CardCategory3 taxonomy={item} />;
-      case "card4":
-        return <CardCategory4 taxonomy={item} />;
-      case "card5":
-        return <CardCategory5 taxonomy={item} />;
-      default:
-        return <CardCategory3 taxonomy={item} />;
-    }
+    const { name, count, thumbnail } = item;
+    const displayCount = count ?? "None";
+
+    return (
+      <div onClick={() => onTypeOfStayClick?.(item.href?.split("=")[1] || "")} style={{ cursor: "pointer" }}>
+        {categoryCardType === "card3" && <CardCategory3 taxonomy={{ ...item, count: displayCount }} />}
+        {categoryCardType === "card4" && <CardCategory4 taxonomy={{ ...item, count: displayCount }} />}
+        {categoryCardType === "card5" && <CardCategory5 taxonomy={{ ...item, count: displayCount }} />}
+      </div>
+    );
   };
 
   if (!numberOfItems) return null;
 
   return (
-    <div className={`nc-SectionSliderNewCategories ${className}`}>
+    <div className={`nc-SectionSliderTypesOfStay ${className}`}>
       <Heading desc={subHeading} isCenter={sliderStyle === "style2"}>
         {heading}
       </Heading>
@@ -195,4 +210,4 @@ const SectionSliderNewCategories: FC<SectionSliderNewCategoriesProps> = ({
   );
 };
 
-export default SectionSliderNewCategories;
+export default SectionSliderTypesOfStay;

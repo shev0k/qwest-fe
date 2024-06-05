@@ -55,6 +55,7 @@ const DEMO_STAY_LISTINGS = __stayListing.map((post, index): StayDataType => {
     amenityNames: [], // Placeholder, adjust as needed
     availableDates: [], // Placeholder, adjust as needed
     like: post.like,
+    likedByAuthorIds: []
   };
 });
 

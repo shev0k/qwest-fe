@@ -1,5 +1,5 @@
-"use client"
-import React, { useEffect, useState, useMemo } from "react";
+"use client";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -17,28 +17,80 @@ import DeleteButton from "@/components/DeleteButton";
 import StayDatesRangeInput from "../StayDatesRangeInput";
 import GuestsInput from "../GuestsInput";
 import SectionDateRange from "../../SectionDateRange";
-import { AuthorType, StayDataType } from '@/data/types';
+import { AuthorType, StayDataType, ReviewDTO, ReservationDTO, GuestsObject } from '@/data/types';
 import fetchStayListingById from '@/api/fetchStayListingById';
 import fetchAuthorById from "@/api/fetchAuthorById";
 import { deleteStayListing } from "@/api/stayServices";
 import { useAuth } from '@/contexts/authContext';
 import type { Route } from "@/routers/types";
+import { fetchReviewsByStayListing, createReview, updateReview, deleteReview, fetchReviewsForAuthorStays } from '@/api/reviewServices';
+import CommentListing from "@/components/CommentListing";
+import ButtonCircle from "@/shared/ButtonCircle";
+import Input from "@/shared/Input";
+import FiveStartIconForRate from "@/components/FiveStartIconForRate";
+import ReviewList from "@/components/ReviewList";
+import { format } from 'date-fns';
+import { useWebSocket } from '@/contexts/WebSocketContext';
+import { useReservations } from "@/contexts/ReservationContext";
+import { isWeekend, eachDayOfInterval, isFriday, addDays } from 'date-fns';
+import Modal from "@/components/Modal"; // Adjust the import path as needed
 
-const ListingStayDetailPage = () => {
+const ListingStayDetailPage: React.FC = () => {
   const pathname = usePathname();
   const router = useRouter();
   const { user } = useAuth();
+  const { stayListings: liveStayListings, reviews: liveReviews } = useWebSocket();
+  const { addReservation } = useReservations();
   const [listing, setListing] = useState<StayDataType | null>(null);
   const [author, setAuthor] = useState<AuthorType | null>(null);
+  const [reviews, setReviews] = useState<ReviewDTO[]>([]);
+  const [newReview, setNewReview] = useState<string>('');
+  const [rating, setRating] = useState<number>(5);
   const [unavailableDates, setUnavailableDates] = useState<Date[]>([]);
   const [isOpenModalAmenities, setIsOpenModalAmenities] = useState(false);
   const [isOpenModalImageGallery, setIsOpenModalImageGallery] = useState(false);
+  const [showAllReviews, setShowAllReviews] = useState(false);
+  const [averageRating, setAverageRating] = useState(0);
+  const [reviewCount, setReviewCount] = useState(0);
+  const [authorAverageRating, setAuthorAverageRating] = useState(0);
+  const [authorReviewCount, setAuthorReviewCount] = useState(0);
+  const [checkInDate, setCheckInDate] = useState<Date | null>(null);
+  const [checkOutDate, setCheckOutDate] = useState<Date | null>(null);
+  const [guests, setGuests] = useState<GuestsObject>({ guestAdults: 1, guestChildren: 0, guestInfants: 0 });
+  const [totalPrice, setTotalPrice] = useState<number>(0);
+  const [totalNights, setTotalNights] = useState<number>(0);
+  const [modal, setModal] = useState({
+    isOpen: false,
+    type: "message" as "message" | "confirm",
+    message: "",
+    onConfirm: () => setModal({ ...modal, isOpen: false }),
+    onCancel: () => setModal({ ...modal, isOpen: false }),
+  });
 
   const googleMapsEmbedUrl = useMemo(() => {
     if (!listing) return ""; 
     const addressQuery = encodeURIComponent(`${listing.street}, ${listing.postalCode}, ${listing.city}, ${listing.country}`);
     return `https://www.google.com/maps/embed/v1/place?key=AIzaSyAyXWlzjN4b3X9kQllFwTeJwFVa1Eqhb-8&q=${addressQuery}`;
   }, [listing]);
+
+  const handleToggleShowAllReviews = () => {
+    setShowAllReviews(!showAllReviews);
+  };
+
+  const calculateRatingAndReviewCount = (reviews: ReviewDTO[]) => {
+    const totalReviews = reviews.length;
+    const totalRating = reviews.reduce((sum, review) => sum + review.rating, 0);
+    const averageRating = totalReviews > 0 ? totalRating / totalReviews : 0;
+  
+    setAverageRating(parseFloat(averageRating.toFixed(1)));
+    setReviewCount(totalReviews);
+  };
+
+  const prioritizeUserReviews = (reviews: ReviewDTO[], userId: number) => {
+    const userReviews = reviews.filter(review => review.authorId === userId);
+    const otherReviews = reviews.filter(review => review.authorId !== userId);
+    return [...userReviews, ...otherReviews];
+  };  
 
   useEffect(() => {
     const id = pathname.split('/').pop();
@@ -52,10 +104,331 @@ const ListingStayDetailPage = () => {
         })
         .then(authorData => {
           setAuthor(authorData);
+  
+          // Combine fetched and live reviews
+          const liveReviewData = liveReviews[Number(id)] || [];
+          fetchReviewsByStayListing(Number(id))
+            .then(fetchedReviews => {
+              const combinedReviews = [...fetchedReviews, ...liveReviewData];
+              const uniqueReviews = Array.from(new Map(combinedReviews.map(review => [review.id, review])).values());
+              const prioritizedReviews = prioritizeUserReviews(uniqueReviews, user?.id || 0);
+              setReviews(prioritizedReviews);
+              calculateRatingAndReviewCount(prioritizedReviews);
+            })
+            .catch(error => console.error(error));
+  
+          return fetchReviewsForAuthorStays(authorData.id);
+        })
+        .then(authorReviews => {
+          const totalAuthorReviews = authorReviews.length;
+          const totalAuthorRating = authorReviews.reduce((sum, review) => sum + review.rating, 0);
+          const authorAverageRating = totalAuthorReviews > 0 ? totalAuthorRating / totalAuthorReviews : 0;
+  
+          setAuthorAverageRating(parseFloat(authorAverageRating.toFixed(1)));
+          setAuthorReviewCount(totalAuthorReviews);
         })
         .catch(error => console.error(error));
     }
-  }, [pathname]);
+  }, [pathname, user, liveReviews]);
+  
+  useEffect(() => {
+    if (checkInDate && checkOutDate) {
+      const nights = Math.floor((checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 3600 * 24));
+      setTotalNights(nights);
+      calculatePrice(nights);
+    }
+  }, [checkInDate, checkOutDate, listing]);
+
+  const validateReservation = useCallback(() => {
+    const adjustDateToUTC = (date: Date | null) => {
+      return date ? new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate())) : null;
+    };
+  
+    const formatDate = (date: Date) => {
+      return date.toISOString().split('T')[0];
+    };
+  
+    console.log('Validating reservation...');
+  
+    if (!listing || !checkInDate || !guests) {
+      console.log('Validation failed: Missing listing, check-in date, or guests.');
+      setModal({
+        isOpen: true,
+        type: "message",
+        message: 'All reservation details are required.',
+        onConfirm: () => setModal({ ...modal, isOpen: false }),
+        onCancel: () => setModal({ ...modal, isOpen: false }),
+      });
+      return false;
+    }
+  
+    const adjustedCheckInDate = adjustDateToUTC(checkInDate);
+    let adjustedCheckOutDate = adjustDateToUTC(checkOutDate);
+  
+    if (!adjustedCheckOutDate) {
+      adjustedCheckOutDate = addDays(adjustedCheckInDate!, 1);
+      setCheckOutDate(adjustedCheckOutDate);
+      setModal({
+        isOpen: true,
+        type: "message",
+        message: 'We have set the checkout date for you.',
+        onConfirm: () => setModal({ ...modal, isOpen: false }),
+        onCancel: () => setModal({ ...modal, isOpen: false }),
+      });
+      console.log('Validation halted: Check-out date was set automatically.');
+      return false;
+    }
+  
+    if (adjustedCheckInDate!.getTime() >= adjustedCheckOutDate.getTime()) {
+      setModal({
+        isOpen: true,
+        type: "message",
+        message: 'Check-out date must be after check-in date.',
+        onConfirm: () => setModal({ ...modal, isOpen: false }),
+        onCancel: () => setModal({ ...modal, isOpen: false }),
+      });
+      return false;
+    }
+  
+    console.log('Check-in date:', formatDate(adjustedCheckInDate!));
+    console.log('Check-out date:', formatDate(adjustedCheckOutDate));
+  
+    const totalGuests = guests.guestAdults + guests.guestChildren + guests.guestInfants;
+    if (totalGuests > listing.maxGuests) {
+      console.log(`Validation failed: Total guests (${totalGuests}) exceed max guests (${listing.maxGuests}).`);
+      setModal({
+        isOpen: true,
+        type: "message",
+        message: `Cannot exceed maximum of ${listing.maxGuests} guests.`,
+        onConfirm: () => setModal({ ...modal, isOpen: false }),
+        onCancel: () => setModal({ ...modal, isOpen: false }),
+      });
+      return false;
+    }
+  
+    const totalNights = Math.floor(((adjustedCheckOutDate || addDays(adjustedCheckInDate!, 1)).getTime() - adjustedCheckInDate!.getTime()) / (1000 * 3600 * 24));
+    if (totalNights < listing.minimumNights || totalNights > listing.maximumNights) {
+      console.log(`Validation failed: Total nights (${totalNights}) not within range (${listing.minimumNights} - ${listing.maximumNights}).`);
+      setModal({
+        isOpen: true,
+        type: "message",
+        message: `Stay must be between ${listing.minimumNights} and ${listing.maximumNights} nights.`,
+        onConfirm: () => setModal({ ...modal, isOpen: false }),
+        onCancel: () => setModal({ ...modal, isOpen: false }),
+      });
+      return false;
+    }
+  
+    const unavailableDates = listing.availableDates.map(dateStr => adjustDateToUTC(new Date(dateStr))!.getTime());
+    const selectedDates = eachDayOfInterval({ start: adjustedCheckInDate!, end: addDays(adjustedCheckOutDate, -1) }).map(date => adjustDateToUTC(date)!.getTime());
+  
+    console.log('Unavailable dates:', listing.availableDates);
+    console.log('Selected dates:', selectedDates.map(date => formatDate(new Date(date))));
+  
+    const isConflict = selectedDates.some(date => unavailableDates.includes(date));
+    if (isConflict) {
+      console.log('Validation failed: Selected dates conflict with unavailable dates.');
+      setModal({
+        isOpen: true,
+        type: "message",
+        message: 'Selected dates include unavailable dates. Please select different dates.',
+        onConfirm: () => setModal({ ...modal, isOpen: false }),
+        onCancel: () => setModal({ ...modal, isOpen: false }),
+      });
+      return false;
+    }
+  
+    console.log('Validation successful.');
+    return true;
+  }, [listing, checkInDate, checkOutDate, guests, setModal, modal]);
+
+  const handleReservation = async () => {
+    const adjustDateToUTC = (date: Date | null) => {
+      return date ? new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate())) : null;
+    };
+  
+    if (!user) {
+      setModal({
+        isOpen: true,
+        type: "message",
+        message: 'You need to be logged in to make a reservation.',
+        onConfirm: () => {
+          setModal({ ...modal, isOpen: false });
+          router.push('/login');
+        },
+        onCancel: () => setModal({ ...modal, isOpen: false }),
+      });
+      return;
+    }
+  
+    if (!checkInDate) {
+      setModal({
+        isOpen: true,
+        type: "message",
+        message: 'Check-in date is required.',
+        onConfirm: () => setModal({ ...modal, isOpen: false }),
+        onCancel: () => setModal({ ...modal, isOpen: false }),
+      });
+      return;
+    }
+  
+    if (!checkOutDate) {
+      setCheckOutDate(addDays(checkInDate, 1));
+      setModal({
+        isOpen: true,
+        type: "message",
+        message: 'We have set the checkout date for you.',
+        onConfirm: () => setModal({ ...modal, isOpen: false }),
+        onCancel: () => setModal({ ...modal, isOpen: false }),
+      });
+      return;
+    }
+  
+    if (!listing || !guests || !validateReservation()) {
+      return;
+    }
+  
+    const adjustedCheckInDate = adjustDateToUTC(checkInDate);
+    const adjustedCheckOutDate = adjustDateToUTC(checkOutDate);
+  
+    const reservationDetails: ReservationDTO = {
+      authorId: user.id, // Ensure this is the logged-in user's ID
+      stayListingId: listing.id,
+      checkInDate: adjustedCheckInDate!.toISOString().split('T')[0],
+      checkOutDate: adjustedCheckOutDate!.toISOString().split('T')[0],
+      adults: guests.guestAdults ?? 0,
+      children: guests.guestChildren ?? 0,
+      infants: guests.guestInfants ?? 0,
+      totalPrice,
+      bookingCode: '', // Placeholder, will be generated in the checkout step
+      cancelled: false,
+      selectedDates: eachDayOfInterval({ start: adjustedCheckInDate!, end: addDays(adjustedCheckOutDate!, -1) })
+        .map(date => adjustDateToUTC(date)!.toISOString().split('T')[0])
+    };
+  
+    localStorage.setItem('reservationDetails', JSON.stringify(reservationDetails));
+    console.log('Reservation saved:', reservationDetails);
+    router.push(`/checkout`);
+  };
+
+  const calculatePrice = useCallback((nights: number) => {
+    if (!listing || !checkInDate || !checkOutDate) return;
+    
+    let totalPrice = 0;
+    eachDayOfInterval({ start: checkInDate, end: addDays(checkOutDate, -1) }).forEach(day => {
+      if (isWeekend(day) || isFriday(day)) {
+        totalPrice += listing.weekendPrice;
+      } else {
+        totalPrice += listing.weekdayPrice;
+      }
+    });
+    
+    const discountRate = listing.longTermStayDiscount ?? 0;
+    if (nights >= 30 && discountRate > 0) {
+      totalPrice *= (1 - (discountRate / 100));
+    }
+  
+    setTotalPrice(totalPrice);
+    console.log(`Price per night calculated: $${totalPrice / nights}, Total price: $${totalPrice}`);
+  }, [listing, checkInDate, checkOutDate]);
+
+  const formatPrice = (price: number): string => {
+    return price % 1 === 0 ? price.toString() : price.toFixed(2);
+  };
+
+  const fetchReviewDetails = async (review: ReviewDTO): Promise<ReviewDTO> => {
+    try {
+      const [author, stay] = await Promise.all([
+        fetchAuthorById(review.authorId),
+        fetchStayListingById(review.stayListingId.toString())
+      ]);
+
+      return {
+        ...review,
+        authorName: author.username,
+        authorAvatar: typeof author.avatar === 'string' ? author.avatar : author.avatar.src,
+        stayTitle: stay.title
+      };
+    } catch (error) {
+      console.error('Failed to fetch review details:', error);
+      throw error;
+    }
+  };
+
+  const handleAddReview = async () => {
+    if (!user) {
+      setModal({
+        isOpen: true,
+        type: "message",
+        message: 'You need to log in first to leave a review.',
+        onConfirm: () => setModal({ ...modal, isOpen: false }),
+        onCancel: () => setModal({ ...modal, isOpen: false }),
+      });
+      return;
+    }
+  
+    if (user && listing) {
+      const newReviewData: ReviewDTO = {
+        rating,
+        comment: newReview,
+        stayListingId: listing.id,
+        authorId: user.id,
+        authorName: user.username || user.firstName || '',
+        createdAt: new Date().toISOString().split('T')[0],
+        authorAvatar: user.avatar || '',
+      };
+      try {
+        const savedReview = await createReview(newReviewData);
+        const updatedReview = await fetchReviewDetails(savedReview);
+        setReviews(prevReviews => {
+          const newReviews = [...prevReviews, updatedReview];
+          return prioritizeUserReviews(newReviews, user.id);
+        });
+        setNewReview(''); // Clear the form
+        setRating(5); // Reset the rating
+      } catch (error) {
+        console.error('Failed to create review:', error);
+      }
+    } else {
+      console.error('User or listing information is missing.');
+    }
+  };
+
+  const handleEditReview = async (reviewId: number, updatedComment: string) => {
+    try {
+      const originalReview = reviews.find(r => r.id === reviewId);
+      if (!originalReview) return;
+
+      const updatedReviewData: ReviewDTO = {
+        ...originalReview,
+        comment: updatedComment,
+        createdAt: new Date().toISOString().split('T')[0],
+        authorId: originalReview.authorId,
+        authorAvatar: originalReview.authorAvatar || '',
+      };
+
+      const updatedReview = await updateReview(reviewId, updatedReviewData);
+      const updatedReviewWithDetails = await fetchReviewDetails(updatedReview);
+      setReviews(reviews => {
+        const newReviews = reviews.map(r => r.id === reviewId ? updatedReviewWithDetails : r);
+        return prioritizeUserReviews(newReviews, user?.id || 0);
+      });
+    } catch (error) {
+      console.error('Failed to update review:', error);
+    }
+  };
+
+  const handleDeleteReview = async (reviewId: number) => {
+    try {
+      await deleteReview(reviewId);
+      setReviews(reviews => {
+        const newReviews = reviews.filter(r => r.id !== reviewId);
+        return prioritizeUserReviews(newReviews, user?.id || 0);
+      });
+    } catch (error) {
+      console.error('Failed to delete review:', error);
+    }
+  };
 
   const handleOpenModalImageGallery = () => {
     const params = new URLSearchParams(window.location.search);
@@ -82,19 +455,36 @@ const ListingStayDetailPage = () => {
 
   const handleDeleteListing = async () => {
     if (listing) {
-      const confirmDelete = confirm("Are you sure you want to delete this listing?");
-      if (confirmDelete) {
-        try {
-          await deleteStayListing(listing.id.toString());
-          router.push("/");
-        } catch (error) {
-          console.error("Failed to delete listing:", error);
-        }
-      }
+      setModal({
+        isOpen: true,
+        type: "confirm",
+        message: "Are you sure you want to delete this listing?",
+        onConfirm: async () => {
+          try {
+            await deleteStayListing(listing.id.toString());
+            setModal({ ...modal, isOpen: false });
+            router.push("/");
+          } catch (error) {
+            console.error("Failed to delete listing:", error);
+            setModal({
+              isOpen: true,
+              type: "message",
+              message: "Failed to delete listing. Please try again.",
+              onConfirm: () => setModal({ ...modal, isOpen: false }),
+              onCancel: () => setModal({ ...modal, isOpen: false }),
+            });
+          }
+        },
+        onCancel: () => setModal({ ...modal, isOpen: false }),
+      });
     }
   };
 
   const isUserAuthorized = user && (user.id === listing?.authorId || user.role === "FOUNDER");
+
+  const isUserReview = (review: ReviewDTO) => {
+    return user ? (user.id === review.authorId || user.id === listing?.authorId || user.role === "FOUNDER") : false;
+  };
 
   if (!listing) return <div>Loading...</div>;
 
@@ -106,7 +496,7 @@ const ListingStayDetailPage = () => {
         <div className="flex justify-between items-center">
           <Badge name={listing.propertyType} />
           <div className="flex items-center space-x-3">
-            <LikeSaveBtns />
+            <LikeSaveBtns listingId={listing.id} />
             {isUserAuthorized && (
               <>
                 <EditButton onClick={handleEditListing} />
@@ -119,7 +509,7 @@ const ListingStayDetailPage = () => {
           {listing.title}
         </h2>
         <div className="flex items-center space-x-4">
-          <StartRating />
+          <StartRating point={averageRating} reviewCount={reviewCount} />
           <span>·</span>
           <span>
             <i className="las la-map-marker-alt"></i>
@@ -181,8 +571,6 @@ const ListingStayDetailPage = () => {
       </div>
     );
   };
-  
-
 
   const renderSection2 = () => {
     return (
@@ -333,8 +721,6 @@ const ListingStayDetailPage = () => {
       </div>
     );
   };
-  
-  
 
   const renderSection5 = () => {
     return (
@@ -383,7 +769,6 @@ const ListingStayDetailPage = () => {
     );
   };
 
-
   const renderSection6 = () => {
     return (
       <div className="listingSection__wrap">
@@ -411,6 +796,8 @@ const ListingStayDetailPage = () => {
   };
 
   const renderSection7 = () => {
+    const authorHref = author ? (`/author/${author.id}` as unknown as Route<string>) : undefined;
+  
     return (
       <div className="listingSection__wrap">
         <h2 className="text-2xl font-semibold">Host Information</h2>
@@ -426,13 +813,13 @@ const ListingStayDetailPage = () => {
             height={56}
           />
           <div>
-            <a className="block text-xl font-medium" href="##">
+            <a className="block text-xl font-medium" href={authorHref || "#"}>
               {author?.username}
             </a>
             <div className="mt-1.5 flex items-center text-sm text-neutral-500 dark:text-neutral-400">
-              <StartRating point={author?.starRating} />
+              <StartRating point={authorAverageRating} reviewCount={authorReviewCount} />
               <span className="mx-2">·</span>
-              <span> {author?.count}</span>
+              <span> {authorReviewCount} {authorReviewCount === 1 ? 'review' : 'reviews'}</span>
             </div>
           </div>
         </div>
@@ -460,50 +847,161 @@ const ListingStayDetailPage = () => {
         </div>
         <div className="w-14 border-b border-neutral-200 dark:border-neutral-700" />
         <div>
-          <ButtonSecondary href="/author">See Host Profile</ButtonSecondary>
+          <ButtonSecondary href={authorHref}>See Host Profile</ButtonSecondary>
+        </div>
+      </div>
+    );
+  };
+
+  const renderSection8 = () => {
+    const displayedReviews = showAllReviews ? reviews : reviews.slice(0, 4);
+
+    return (
+      <div className="listingSection__wrap">
+        {/* HEADING */}
+        <h2 className="text-2xl font-semibold">
+          Reviews ({reviews.length} {reviews.length === 1 ? 'review' : 'reviews'})
+        </h2>
+        <div className="w-14 border-b border-neutral-200 dark:border-neutral-700"></div>
+
+        {/* Content */}
+        <div className="space-y-5">
+          <FiveStartIconForRate
+            iconClass="w-6 h-6"
+            className="space-x-0.5"
+            defaultPoint={rating}
+            setRating={setRating}
+          />
+          <div className="relative">
+            <Input
+              fontClass=""
+              sizeClass="h-16 px-4 py-3"
+              rounded="rounded-3xl"
+              placeholder="Share your thoughts ..."
+              value={newReview}
+              onChange={(e) => setNewReview(e.target.value)}
+            />
+            <ButtonCircle
+              className="absolute right-2 top-1/2 transform -translate-y-1/2"
+              size=" w-12 h-12 "
+              onClick={handleAddReview}
+            >
+              <ArrowRightIcon className="w-5 h-5" />
+            </ButtonCircle>
+          </div>
+        </div>
+
+        {/* comment */}
+        <div className="divide-y divide-neutral-100 dark:divide-neutral-800">
+          {reviews.length === 0 ? (
+            <div className="text-neutral-500 dark:text-neutral-400 py-8">No reviews yet.</div>
+          ) : (
+            displayedReviews.map(review => (
+              <CommentListing
+                key={review.id}
+                className="py-8"
+                data={review}
+                onEditReview={handleEditReview}
+                onDeleteReview={handleDeleteReview}
+                isUserAuthorized={isUserReview(review)}
+              />
+            ))
+          )}
+          {reviews.length > 4 && (
+            <div className="pt-8">
+              <ButtonSecondary onClick={handleToggleShowAllReviews}>
+                {showAllReviews ? 'Hide Reviews' : 'View More Reviews'}
+              </ButtonSecondary>
+            </div>
+          )}
         </div>
       </div>
     );
   };
 
   const renderSidebar = () => {
+    let totalPrice = 0;
+    let discount = 0;
+
+    if (checkInDate && checkOutDate && listing) {
+      // Ensure check-in date is before check-out date
+      if (checkInDate.getTime() >= checkOutDate.getTime()) {
+        return null; // Or display a message indicating the invalid date range
+      }
+
+      // Calculate the number of nights and ensure end date is adjusted correctly
+      const adjustedCheckOutDate = addDays(checkOutDate, -1);
+      eachDayOfInterval({ start: checkInDate, end: adjustedCheckOutDate }).forEach(day => {
+        if (isWeekend(day) || isFriday(day)) {
+          totalPrice += listing.weekendPrice;
+        } else {
+          totalPrice += listing.weekdayPrice;
+        }
+      });
+
+      // Calculate discount if applicable
+      const nights = Math.floor((checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 3600 * 24));
+      if (nights >= 30 && listing.longTermStayDiscount) {
+        discount = totalPrice * (listing.longTermStayDiscount / 100);
+        totalPrice -= discount;
+      }
+    }
+
+    // Calculate the display prices
+    const nights = checkInDate && checkOutDate ? Math.floor((checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 3600 * 24)) : 0;
+    const displayPrice = formatPrice(totalPrice / Math.max(nights, 1));  // Avoid division by zero
+    const displayTotal = formatPrice(totalPrice);
+
     return (
       <div className="listingSectionSidebar__wrap shadow-xl">
         <div className="flex justify-between">
           <span className="text-3xl font-semibold">
-            ${listing.weekdayPrice}
+            ${displayPrice}
             <span className="ml-1 text-base font-normal text-neutral-500 dark:text-neutral-400">
-              /Night
+              /night
             </span>
           </span>
-          <StartRating />
+          <StartRating point={averageRating} reviewCount={reviewCount} />
         </div>
         <form className="flex flex-col border border-neutral-200 dark:border-neutral-700 rounded-3xl ">
-          <StayDatesRangeInput className="flex-1 z-[11]" />
+          <StayDatesRangeInput
+            className="flex-1 z-[11]"
+            value={[checkInDate, checkOutDate]}
+            onChange={(dates) => {
+              setCheckInDate(dates[0]);
+              setCheckOutDate(dates[1]);
+              if (dates[0] && dates[1]) {
+                const nights = Math.floor((dates[1].getTime() - dates[0].getTime()) / (1000 * 3600 * 24));
+                calculatePrice(nights);
+              }
+            }}
+          />
           <div className="w-full border-b border-neutral-200 dark:border-neutral-700"></div>
-          <GuestsInput className="flex-1" />
+          <GuestsInput className="flex-1" onChange={setGuests} value={guests} />
         </form>
         <div className="flex flex-col space-y-4">
           <div className="flex justify-between text-neutral-6000 dark:text-neutral-300">
-            <span>${listing.weekdayPrice} x 3 Night/s</span>
-            <span>$75</span>
+            <span>${displayPrice} x {nights} nights</span>
+            <span>${displayTotal}</span>
           </div>
-          <div className="flex justify-between text-neutral-6000 dark:text-neutral-300">
-            <span>Service Charge</span>
-            <span>$0</span>
-          </div>
+          {discount > 0 && (
+            <div className="flex justify-between text-neutral-6000 dark:text-neutral-300">
+              <span>Discount</span>
+              <span>-${formatPrice(discount)}</span>
+            </div>
+          )}
           <div className="border-b border-neutral-200 dark:border-neutral-700"></div>
           <div className="flex justify-between font-semibold">
             <span>Total</span>
-            <span>$75</span>
+            <span>${displayTotal}</span>
           </div>
         </div>
-        <ButtonPrimary href={"/checkout"}>Reserve</ButtonPrimary>
+        <ButtonPrimary onClick={handleReservation}>Reserve</ButtonPrimary>
       </div>
     );
   };
 
-   return (
+  return (
     <div className="nc-ListingStayDetailPage">
       <header className="rounded-md sm:rounded-xl">
         <div className="relative grid grid-cols-3 sm:grid-cols-4 gap-1 sm:gap-2">
@@ -554,7 +1052,7 @@ const ListingStayDetailPage = () => {
           </button>
         </div>
       </header>
-      <main className="relative z-10 mt-11 flex flex-col lg:flex-row">
+        <main className="relative z-10 mt-11 flex flex-col lg:flex-row">
         <div className="w-full lg:w-3/5 xl:w-2/3 space-y-8 lg:space-y-10 lg:pr-10">
           {renderSection1()}
           {renderSection2()}
@@ -564,11 +1062,20 @@ const ListingStayDetailPage = () => {
           {renderSection5()}
           {renderSection6()}
           {renderSection7()}
+          {renderSection8()}
         </div>
         <div className="hidden lg:block flex-grow mt-14 lg:mt-0">
           <div className="sticky top-28">{renderSidebar()}</div>
         </div>
       </main>
+      <Modal
+        type={modal.type}
+        message={modal.message}
+        isOpen={modal.isOpen}
+        onClose={modal.onConfirm}
+        onConfirm={modal.onConfirm}
+        onCancel={modal.onCancel}
+      />
     </div>
   );
 };

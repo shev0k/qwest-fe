@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ListingFormProvider, useListingForm } from "@/contexts/ListingFormContext";
 import CommonLayout from "../CommonLayout";
@@ -16,10 +16,9 @@ import PageAddListing8 from "./PageAddListing8";
 import PageAddListing9 from "./PageAddListing9";
 import { useAuth } from "@/contexts/authContext";
 
-// ContentWithValidation component that uses the context
 const ContentWithValidation = ({ params }: { params: { stepIndex: string } }) => {
-  const { isFormValid } = useListingForm();  // Safe to use here as it's inside the provider
-  console.log("Form Valid in CommonLayout:", isFormValid); // To ensure it's receiving the correct value
+  const { isFormValid } = useListingForm();  
+  console.log("Form Valid in CommonLayout:", isFormValid); 
 
   const ContentComponent = (() => {
     switch (Number(params.stepIndex)) {
@@ -44,16 +43,27 @@ const ContentWithValidation = ({ params }: { params: { stepIndex: string } }) =>
   );
 };
 
-// Updated Page component that wraps everything in ListingFormProvider
 const Page = ({ params }: { params: { stepIndex: string } }) => {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, isAuthenticated, loginUser } = useAuth();
 
-  if (!user || (user.role !== "FOUNDER" && user.role !== "HOST")) {
-    // Redirect to index if not authenticated or not a FOUNDER or HOST
-    router.push("/");
-    return null;
-  }
+  useEffect(() => {
+    const storedUserData = sessionStorage.getItem('user');
+    const storedToken = sessionStorage.getItem('token');
+
+    if (storedUserData && storedToken) {
+      const userData = JSON.parse(storedUserData);
+      loginUser(userData);
+    } else {
+      router.push('/login');
+    }
+  }, [router]);
+
+  useEffect(() => {
+    if (user && user.role !== "FOUNDER" && user.role !== "HOST") {
+      router.push('/');
+    }
+  }, [isAuthenticated, user, router]);
 
   return (
     <ListingFormProvider>

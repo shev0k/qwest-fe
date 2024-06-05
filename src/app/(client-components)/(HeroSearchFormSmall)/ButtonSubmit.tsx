@@ -4,6 +4,7 @@ import React, { FC } from "react";
 import { PathName } from "@/routers/types";
 import Link from "next/link";
 
+
 interface Props {
   className?: string;
   href: PathName;
@@ -11,7 +12,7 @@ interface Props {
 
 const ButtonSubmit: FC<Props> = ({
   className = "",
-  href = "/listing-stay-map",
+  href = "/listing-stay",
 }) => {
   return (
     <Link

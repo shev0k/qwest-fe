@@ -14,7 +14,7 @@ export interface SectionGridCategoryBoxProps {
 const DEMO_CATS: TaxonomyType[] = [
   {
     id: "1",
-    href: "/listing-stay-map",
+    href: "/listing-stay",
     name: "Tokyo",
     taxonomy: "category",
     count: 47,
@@ -23,7 +23,7 @@ const DEMO_CATS: TaxonomyType[] = [
   },
   {
     id: "2",
-    href: "/listing-stay-map",
+    href: "/listing-stay",
     name: "Maldives",
     taxonomy: "category",
     count: 14,
@@ -32,7 +32,7 @@ const DEMO_CATS: TaxonomyType[] = [
   },
   {
     id: "3",
-    href: "/listing-stay-map",
+    href: "/listing-stay",
     name: "Paris",
     taxonomy: "category",
     count: 16,
@@ -41,7 +41,7 @@ const DEMO_CATS: TaxonomyType[] = [
   },
   {
     id: "4",
-    href: "/listing-stay-map",
+    href: "/listing-stay",
     name: "London",
     taxonomy: "category",
     count: 94,

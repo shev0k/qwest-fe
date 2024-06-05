@@ -13,19 +13,63 @@ export interface ListingGalleryImage {
   url: string;
 }
 
+export interface ReviewDTO {
+  id?: number;
+  rating: number;
+  comment: string;
+  stayListingId: number;
+  authorId: number;
+  authorName: string;
+  authorAvatar?: string | StaticImageData;
+  stayTitle?: string;
+  createdDate?: string;
+  createdAt?: string;
+}
+
+export interface ReservationDTO {
+  id?: number;
+  authorId: number;
+  stayListingId: number;
+  checkInDate: string;
+  checkOutDate: string;
+  adults: number;
+  children: number;
+  infants: number;
+  totalPrice: number;
+  bookingCode?: string;
+  cancelled?: boolean;
+  selectedDates: string[];
+}
 
 //  ##########  PostDataType ######## //
 export interface TaxonomyType {
   id: string | number;
   name: string;
-  href: Route<string>;
-  count?: number;
+  href?: Route<string>;
+  count: number;
   thumbnail?: string;
   desc?: string;
   color?: TwMainColor | string;
   taxonomy: "category" | "tag";
   listingType?: "stay" | "experiences";
 }
+
+export interface NotificationType {
+  id: number;
+  authorId: number;
+  senderId: number;
+  senderName: string;
+  senderAvatar: string;
+  message: string;
+  timestamp: string;
+  type: string;
+  timestampFormatted: string | null;
+  read: boolean;
+  isRead: boolean;
+  stayId?: number;
+}
+
+
 
 export interface AuthorType {
   id: number;
@@ -35,11 +79,15 @@ export interface AuthorType {
   avatar: string | StaticImageData;
   bgImage?: string | StaticImageData;
   email?: string;
+  role?: string;
+  phoneNumber?: string;
   count: number;
   description: string;
+  country?: string;
   jobName: string;
   href: Route<string>;
   starRating?: number;
+  wishlistIds: number[];
 }
 
 export interface PostDataType {
@@ -67,6 +115,11 @@ export type TwMainColor =
   | "purple"
   | "gray";
 
+  export interface GuestsObject {
+    guestAdults: number;
+    guestChildren: number;
+    guestInfants: number;
+  }
 //
 export interface StayDataType {
   id: number;
@@ -107,6 +160,7 @@ export interface StayDataType {
   amenityNames: string[];
   availableDates: string[];
   like: boolean;
+  likedByAuthorIds: number[]; // Add this field
 }
 
 export interface Amenity {

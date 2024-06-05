@@ -1,15 +1,34 @@
 "use client";
-
+import React, { useEffect, useState } from 'react';
 import { Tab } from "@headlessui/react";
 import StayCard from "@/components/StayCard";
-import {
-  DEMO_STAY_LISTINGS,
-} from "@/data/listings";
-import React, { Fragment, useState } from "react";
 import ButtonSecondary from "@/shared/ButtonSecondary";
+import { useAuth } from '@/contexts/authContext';
+import { StayDataType } from "@/data/types";
+import { useRouter } from 'next/navigation';
 
 const AccountSavelists = () => {
-  let [categories] = useState(["Stays"]);
+  const { user, wishlist, fetchUserWishlist, isAuthenticated, loginUser } = useAuth();
+  const [categories] = useState(["Stays"]);
+  const router = useRouter();
+
+  useEffect(() => {
+    const storedUserData = sessionStorage.getItem('user');
+    const storedToken = sessionStorage.getItem('token');
+
+    if (storedUserData && storedToken) {
+      const userData = JSON.parse(storedUserData);
+      loginUser(userData);
+    } else {
+      router.push('/login');
+    }
+  }, [router]);
+
+  useEffect(() => {
+    if (user) {
+      fetchUserWishlist(user.id);
+    }
+  }, [user, fetchUserWishlist]);
 
   const renderSection1 = () => {
     return (
@@ -19,11 +38,12 @@ const AccountSavelists = () => {
         </div>
         <div className="w-14 border-b border-neutral-200 dark:border-neutral-700"></div>
 
+        {wishlist.length > 0 ? (
         <div>
           <Tab.Group>
             <Tab.List className="flex space-x-1 overflow-x-auto">
               {categories.map((item) => (
-                <Tab key={item} as={Fragment}>
+                <Tab key={item} as={React.Fragment}>
                   {({ selected }) => (
                     <button
                       className={`flex-shrink-0 block !leading-none font-medium px-5 py-2.5 text-sm sm:text-base sm:px-6 sm:py-3 capitalize rounded-full focus:outline-none ${
@@ -41,7 +61,7 @@ const AccountSavelists = () => {
             <Tab.Panels>
               <Tab.Panel className="mt-8">
                 <div className="grid grid-cols-1 gap-6 md:gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                  {DEMO_STAY_LISTINGS.filter((_, i) => i < 8).map((stay) => (
+                  {wishlist.map((stay: StayDataType) => (
                     <StayCard key={stay.id} data={stay} />
                   ))}
                 </div>
@@ -51,7 +71,11 @@ const AccountSavelists = () => {
               </Tab.Panel>
             </Tab.Panels>
           </Tab.Group>
-        </div>
+        </div>        ) : (
+          <div className="mt-8 text-center text-neutral-500 dark:text-neutral-400">
+            Stays will appear here once you save them
+          </div>
+        )}
       </div>
     );
   };

@@ -1,7 +1,6 @@
 import React, { FC, useContext } from "react";
 import Logo from "@/shared/Logo";
 import MenuBar from "@/shared/MenuBar";
-import LangDropdown from "./LangDropdown";
 import NotifyDropdown from "./NotifyDropdown";
 import AvatarDropdown from "./AvatarDropdown";
 import DropdownTravelers from "./DropdownTravelers";
@@ -10,12 +9,14 @@ import Link from "next/link";
 import TemplatesDropdown from "./TemplatesDropdown";
 import { Route } from "@/routers/types";
 import { AuthContext } from "@/contexts/authContext"; // Adjust the path as needed
+import { NotificationType } from '@/data/types';
 
 export interface MainNav2Props {
   className?: string;
+  notifications: NotificationType[];
 }
 
-const MainNav2: FC<MainNav2Props> = ({ className = "" }) => {
+const MainNav2: FC<MainNav2Props> = ({ className = "", notifications }) => {
   const authContext = useContext(AuthContext);
 
   return (
@@ -36,7 +37,6 @@ const MainNav2: FC<MainNav2Props> = ({ className = "" }) => {
         <div className="hidden md:flex flex-shrink-0 justify-end flex-1 lg:flex-none text-neutral-700 dark:text-neutral-100">
           <div className="hidden lg:flex space-x-1">
             <TemplatesDropdown />
-            <LangDropdown/>
             {authContext && authContext.user && (authContext.user.role === 'FOUNDER' || authContext.user.role === 'HOST') && (
               <Link
                 href={"/add-listing" as Route<string>}
@@ -45,11 +45,11 @@ const MainNav2: FC<MainNav2Props> = ({ className = "" }) => {
                 List your property
               </Link>
             )}
-            <NotifyDropdown />
+            <NotifyDropdown className="" notifications={notifications} />
             <AvatarDropdown />
           </div>
           <div className="flex space-x-2 lg:hidden">
-            <NotifyDropdown />
+            <NotifyDropdown className="" notifications={notifications} />
             <AvatarDropdown />
             <MenuBar />
           </div>
